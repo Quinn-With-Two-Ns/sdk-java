@@ -380,6 +380,11 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public <R> NexusOperationOutput<R> executeNexusOperation(NexusOperationInput<R> input) {
+      throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
     public Random newRandom() {
       throw new UnsupportedOperationException("not implemented");
     }

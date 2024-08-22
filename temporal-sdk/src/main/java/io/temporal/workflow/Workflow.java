@@ -24,6 +24,7 @@ import com.uber.m3.tally.Scope;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.activity.LocalActivityOptions;
 import io.temporal.api.common.v1.WorkflowExecution;
+import io.temporal.common.Experimental;
 import io.temporal.common.RetryOptions;
 import io.temporal.common.SearchAttributeUpdate;
 import io.temporal.common.SearchAttributes;
@@ -1289,6 +1290,17 @@ public final class Workflow {
    */
   public static boolean isEveryHandlerFinished() {
     return WorkflowInternal.isEveryHandlerFinished();
+  }
+
+  /**
+   * Creates a NexusClient from an endpoint name and a service name.
+   *
+   * @param endpoint endpoint name this client uses
+   * @param service service name this client uses.
+   */
+  @Experimental
+  public static NexusClient newNexusClient(String endpoint, String service) {
+    return WorkflowInternal.newNexusClient(endpoint, service);
   }
 
   /** Prohibit instantiation. */
