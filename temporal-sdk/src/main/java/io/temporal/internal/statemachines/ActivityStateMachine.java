@@ -400,7 +400,6 @@ final class ActivityStateMachine
   private void notifyTimedOut() {
     ActivityTaskTimedOutEventAttributes timedOut =
         currentEvent.getActivityTaskTimedOutEventAttributes();
-
     ActivityFailureInfo failureInfo =
         ActivityFailureInfo.newBuilder()
             .setActivityId(activityId)

@@ -299,6 +299,8 @@ public class WorkflowExecutionUtils {
       case EVENT_TYPE_WORKFLOW_EXECUTION_UPDATE_ACCEPTED:
       case EVENT_TYPE_WORKFLOW_EXECUTION_UPDATE_REJECTED:
       case EVENT_TYPE_WORKFLOW_EXECUTION_UPDATE_COMPLETED:
+      case EVENT_TYPE_NEXUS_OPERATION_SCHEDULED:
+      case EVENT_TYPE_NEXUS_OPERATION_CANCEL_REQUESTED:
         return true;
       default:
         return false;
@@ -334,6 +336,10 @@ public class WorkflowExecutionUtils {
         return EventType.EVENT_TYPE_SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_INITIATED;
       case COMMAND_TYPE_UPSERT_WORKFLOW_SEARCH_ATTRIBUTES:
         return EventType.EVENT_TYPE_UPSERT_WORKFLOW_SEARCH_ATTRIBUTES;
+      case COMMAND_TYPE_SCHEDULE_NEXUS_OPERATION:
+        return EventType.EVENT_TYPE_NEXUS_OPERATION_SCHEDULED;
+      case COMMAND_TYPE_REQUEST_CANCEL_NEXUS_OPERATION:
+        return EventType.EVENT_TYPE_NEXUS_OPERATION_CANCEL_REQUESTED;
     }
     throw new IllegalArgumentException("Unknown commandType");
   }

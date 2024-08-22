@@ -121,11 +121,15 @@ public class WorkerOptionsTest {
     SlotSupplier<LocalActivitySlotInfo> localActivitySlotSupplier =
         ResourceBasedSlotSupplier.createForLocalActivity(
             resourceController, ResourceBasedTuner.DEFAULT_ACTIVITY_SLOT_OPTIONS);
+    SlotSupplier<NexusSlotInfo> nexusSlotSupplier = new FixedSizeSlotSupplier<>(10);
 
     WorkerOptions.newBuilder()
         .setWorkerTuner(
             new CompositeTuner(
-                workflowTaskSlotSupplier, activityTaskSlotSupplier, localActivitySlotSupplier))
+                workflowTaskSlotSupplier,
+                activityTaskSlotSupplier,
+                localActivitySlotSupplier,
+                nexusSlotSupplier))
         .build();
   }
 
@@ -145,11 +149,15 @@ public class WorkerOptionsTest {
     SlotSupplier<LocalActivitySlotInfo> localActivitySlotSupplier =
         ResourceBasedSlotSupplier.createForLocalActivity(
             resourceController2, ResourceBasedTuner.DEFAULT_ACTIVITY_SLOT_OPTIONS);
+    SlotSupplier<NexusSlotInfo> nexusSlotSupplier = new FixedSizeSlotSupplier<>(10);
 
     assertThrows(
         IllegalArgumentException.class,
         () ->
             new CompositeTuner(
-                workflowTaskSlotSupplier, activityTaskSlotSupplier, localActivitySlotSupplier));
+                workflowTaskSlotSupplier,
+                activityTaskSlotSupplier,
+                localActivitySlotSupplier,
+                nexusSlotSupplier));
   }
 }

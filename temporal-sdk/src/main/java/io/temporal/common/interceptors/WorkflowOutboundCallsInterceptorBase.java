@@ -56,6 +56,11 @@ public class WorkflowOutboundCallsInterceptorBase implements WorkflowOutboundCal
   }
 
   @Override
+  public <R> NexusOperationOutput<R> executeNexusOperation(NexusOperationInput<R> input) {
+    return next.executeNexusOperation(input);
+  }
+
+  @Override
   public Random newRandom() {
     return next.newRandom();
   }
