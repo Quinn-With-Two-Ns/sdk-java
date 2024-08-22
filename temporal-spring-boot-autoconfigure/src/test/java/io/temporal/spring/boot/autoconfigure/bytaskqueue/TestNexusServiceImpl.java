@@ -20,25 +20,26 @@
 
 package io.temporal.spring.boot.autoconfigure.bytaskqueue;
 
-import io.temporal.activity.ActivityOptions;
-import io.temporal.spring.boot.WorkflowImpl;
-import io.temporal.workflow.NexusServiceOptions;
-import io.temporal.workflow.Workflow;
-import java.time.Duration;
+import io.nexusrpc.handler.OperationHandler;
+import io.nexusrpc.handler.OperationImpl;
+import io.nexusrpc.handler.ServiceImpl;
+import io.temporal.spring.boot.NexusServiceImpl;
+import org.springframework.stereotype.Component;
 
-@WorkflowImpl(taskQueues = {"${default-queue.name:UnitTest}"})
-public class TestWorkflowImpl implements TestWorkflow {
-  @Override
-  public String execute(String input) {
-    TestNexusService service =
-        Workflow.newNexusServiceStub(
-            TestNexusService.class, NexusServiceOptions.newBuilder().build());
-    return service.sayHello1("Hello")
-        + Workflow.newActivityStub(
-                TestActivity.class,
-                ActivityOptions.newBuilder()
-                    .setStartToCloseTimeout(Duration.ofSeconds(1))
-                    .validateAndBuildWithDefaults())
-            .execute("done");
+@Component("TestNexusServiceImpl")
+@NexusServiceImpl(taskQueues = "${default-queue.name:UnitTest}")
+@ServiceImpl(service = TestNexusService.class)
+public class TestNexusServiceImpl {
+
+  @OperationImpl
+  public OperationHandler<String, String> sayHello1() {
+    // Implemented inline
+    return OperationHandler.sync((ctx, details, name) -> "Hello, " + name + "!");
+  }
+
+  @OperationImpl
+  public OperationHandler<String, String> sayHello2() {
+    // Implemented via handler
+    return OperationHandler.sync((ctx, details, name) -> "Hello, " + name + "!");
   }
 }

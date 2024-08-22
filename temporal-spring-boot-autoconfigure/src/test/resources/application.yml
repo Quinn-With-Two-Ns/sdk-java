@@ -24,8 +24,6 @@ spring.temporal:
       key-file: /path/to/key.key
       cert-chain-file: /path/to/cert.pem
     target: local
-  test-server:
-    enabled: true
 
 ---
 spring:
@@ -122,5 +120,3 @@ spring:
         cert-chain-file: classpath:pkcs8-crt-chain.pem
         server-name: myservername
       target: 127.0.0.1:7233
-    test-server:
-      enabled: false
