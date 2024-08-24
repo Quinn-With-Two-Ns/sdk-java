@@ -704,11 +704,11 @@ final class SyncWorkflowContext implements WorkflowContext, WorkflowOutboundCall
   }
 
   @Override
-  public <R> NexusOperationOutput<R> executeNexusOperation(NexusOperationInput<R> input) {
+  public <R> ExecuteNexusOperationOutput<R> executeNexusOperation(ExecuteNexusOperationInput<R> input) {
     if (CancellationScope.current().isCancelRequested()) {
       CanceledFailure canceledFailure =
           new CanceledFailure("execute nexus operation called from a canceled scope");
-      return new NexusOperationOutput<>(
+      return new ExecuteNexusOperationOutput<>(
           Workflow.newFailedPromise(canceledFailure), Workflow.newFailedPromise(canceledFailure));
     }
 
@@ -771,7 +771,7 @@ final class SyncWorkflowContext implements WorkflowContext, WorkflowOutboundCall
         resultPromise.thenApply(
             (b) ->
                 dataConverter.fromPayload(b.get(), input.getResultClass(), input.getResultType()));
-    return new NexusOperationOutput<>(result, operationPromise);
+    return new ExecuteNexusOperationOutput<>(result, operationPromise);
   }
 
   @SuppressWarnings("deprecation")

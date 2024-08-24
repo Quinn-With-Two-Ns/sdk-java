@@ -140,7 +140,7 @@ public final class Worker {
     attachMetricsToResourceController(taggedScope, nexusSlotSupplier);
 
     nexusWorker =
-        new SyncNexusWorker(service, namespace, taskQueue, nexusOptions, nexusSlotSupplier);
+        new SyncNexusWorker(client, namespace, taskQueue, nexusOptions, nexusSlotSupplier);
 
     SingleWorkerOptions singleWorkerOptions =
         toWorkflowWorkerOptions(

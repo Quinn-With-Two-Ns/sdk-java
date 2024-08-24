@@ -21,6 +21,7 @@
 package io.temporal.client;
 
 import com.google.common.base.Objects;
+import io.temporal.api.common.v1.Callback;
 import io.temporal.api.enums.v1.WorkflowIdConflictPolicy;
 import io.temporal.api.enums.v1.WorkflowIdReusePolicy;
 import io.temporal.common.CronSchedule;
@@ -113,6 +114,10 @@ public final class WorkflowOptions {
     private Duration startDelay;
 
     private WorkflowIdConflictPolicy workflowIdConflictpolicy;
+
+    private String requestID;
+
+    private List<Callback> callbacks;
 
     private Builder() {}
 
@@ -382,6 +387,18 @@ public final class WorkflowOptions {
       return this;
     }
 
+    /** Request ID. */
+    Builder setRequestID(String requestID) {
+      this.requestID = requestID;
+      return this;
+    }
+
+    /** Workflow completion callback. */
+    Builder setCallbacks(List<Callback> callbacks) {
+      this.callbacks = callbacks;
+      return this;
+    }
+
     public WorkflowOptions build() {
       return new WorkflowOptions(
           workflowId,
@@ -398,7 +415,9 @@ public final class WorkflowOptions {
           contextPropagators,
           disableEagerExecution,
           startDelay,
-          workflowIdConflictpolicy);
+          workflowIdConflictpolicy,
+          requestID,
+          callbacks);
     }
 
     /**
@@ -420,7 +439,9 @@ public final class WorkflowOptions {
           contextPropagators,
           disableEagerExecution,
           startDelay,
-          workflowIdConflictpolicy);
+          workflowIdConflictpolicy,
+          requestID,
+          callbacks);
     }
   }
 
@@ -453,6 +474,8 @@ public final class WorkflowOptions {
   private final Duration startDelay;
 
   private final WorkflowIdConflictPolicy workflowIdConflictpolicy;
+  private final String requestID;
+  private final List<Callback> callbacks;
 
   private WorkflowOptions(
       String workflowId,
@@ -469,7 +492,9 @@ public final class WorkflowOptions {
       List<ContextPropagator> contextPropagators,
       boolean disableEagerExecution,
       Duration startDelay,
-      WorkflowIdConflictPolicy workflowIdConflictpolicy) {
+      WorkflowIdConflictPolicy workflowIdConflictpolicy,
+      String requestID,
+      List<Callback> callbacks) {
     this.workflowId = workflowId;
     this.workflowIdReusePolicy = workflowIdReusePolicy;
     this.workflowRunTimeout = workflowRunTimeout;
@@ -485,6 +510,8 @@ public final class WorkflowOptions {
     this.disableEagerExecution = disableEagerExecution;
     this.startDelay = startDelay;
     this.workflowIdConflictpolicy = workflowIdConflictpolicy;
+    this.requestID = requestID;
+    this.callbacks = callbacks;
   }
 
   public String getWorkflowId() {
@@ -556,6 +583,16 @@ public final class WorkflowOptions {
     return workflowIdConflictpolicy;
   }
 
+  // TODO can we avoid exposing this?
+  public String getRequestID() {
+    return requestID;
+  }
+
+  // TODO can we avoid exposing this?
+  public List<Callback> getCallbacks() {
+    return callbacks;
+  }
+
   public Builder toBuilder() {
     return new Builder(this);
   }
@@ -579,7 +616,9 @@ public final class WorkflowOptions {
         && Objects.equal(contextPropagators, that.contextPropagators)
         && Objects.equal(disableEagerExecution, that.disableEagerExecution)
         && Objects.equal(startDelay, that.startDelay)
-        && Objects.equal(workflowIdConflictpolicy, that.workflowIdConflictpolicy);
+        && Objects.equal(workflowIdConflictpolicy, that.workflowIdConflictpolicy)
+        && Objects.equal(requestID, that.requestID)
+        && Objects.equal(callbacks, that.callbacks);
   }
 
   @Override
@@ -599,7 +638,9 @@ public final class WorkflowOptions {
         contextPropagators,
         disableEagerExecution,
         startDelay,
-        workflowIdConflictpolicy);
+        workflowIdConflictpolicy,
+        requestID,
+        callbacks);
   }
 
   @Override
@@ -638,6 +679,10 @@ public final class WorkflowOptions {
         + startDelay
         + ", workflowIdConflictpolicy="
         + workflowIdConflictpolicy
+        + ", requestId="
+        + requestID
+        + ", Callbacks="
+        + callbacks
         + '}';
   }
 }

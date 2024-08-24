@@ -18,24 +18,37 @@
  * limitations under the License.
  */
 
-package io.temporal.workflow;
+package io.temporal.client;
 
-import io.temporal.common.Experimental;
+import java.util.Map;
 
-@Experimental
-public interface NexusClient {
-  String getEndpoint();
+class NexusStartWorkflowRequest {
+  private final String requestId;
+  private final String callbackUrl;
+  private final Map<String, String> callbackHeaders;
+  private final String taskQueue;
 
-  <T> T newServiceStub(Class<T> service);
+  public NexusStartWorkflowRequest(
+      String requestId, String callbackUrl, Map<String, String> callbackHeaders, String taskQueue) {
+    this.requestId = requestId;
+    this.callbackUrl = callbackUrl;
+    this.callbackHeaders = callbackHeaders;
+    this.taskQueue = taskQueue;
+  }
 
-  <T> T newServiceStub(Class<T> service, NexusOperationOptions options);
+  public String getRequestId() {
+    return requestId;
+  }
 
-  /**
-   * Creates untyped client stub that can be used to execute a Nexus operation.
-   *
-   * @param operation name of the operation to start.
-   * @param options options passed to the nexus operation.
-   */
-  NexusOperationStub newUntypedNexusOperationStub(
-      String service, String operation, NexusOperationOptions options);
+  public String getCallbackUrl() {
+    return callbackUrl;
+  }
+
+  public Map<String, String> getCallbackHeaders() {
+    return callbackHeaders;
+  }
+
+  public String getTaskQueue() {
+    return taskQueue;
+  }
 }

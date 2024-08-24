@@ -287,7 +287,7 @@ final class NexusWorker implements SuspendableWorker {
       try {
         sendReply(taskToken, result, metricsScope);
       } catch (Exception e) {
-        // logExceptionDuringResultReporting(e, pollResponse, result);
+        logExceptionDuringResultReporting(e, pollResponse, result);
         throw e;
       }
 
@@ -295,6 +295,13 @@ final class NexusWorker implements SuspendableWorker {
           ProtobufTimeUtils.toM3DurationSinceNow(pollResponse.getRequest().getScheduledTime());
       metricsScope.timer(MetricsType.NEXUS_TASK_E2E_LATENCY).record(e2eDuration);
       return result;
+    }
+
+    private void logExceptionDuringResultReporting(
+        Exception e,
+        PollNexusTaskQueueResponseOrBuilder pollResponse,
+        NexusTaskHandler.Result result) {
+      log.warn("Failure during reporting of nexus task result to the server", e);
     }
 
     private void sendReply(

@@ -56,7 +56,7 @@ public class WorkflowOutboundCallsInterceptorBase implements WorkflowOutboundCal
   }
 
   @Override
-  public <R> NexusOperationOutput<R> executeNexusOperation(NexusOperationInput<R> input) {
+  public <R> ExecuteNexusOperationOutput<R> executeNexusOperation(ExecuteNexusOperationInput<R> input) {
     return next.executeNexusOperation(input);
   }
 

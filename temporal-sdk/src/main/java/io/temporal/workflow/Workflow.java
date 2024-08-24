@@ -1282,14 +1282,13 @@ public final class Workflow {
   }
 
   /**
-   * Creates a NexusClient from an endpoint name and a service name.
+   * Creates a NexusClient from an endpoint name.
    *
    * @param endpoint endpoint name this client uses
-   * @param service service name this client uses.
    */
   @Experimental
-  public static NexusClient newNexusClient(String endpoint, String service) {
-    return WorkflowInternal.newNexusClient(endpoint, service);
+  public static NexusClient newNexusClient(String endpoint) {
+    return WorkflowInternal.newNexusClient(endpoint);
   }
 
   /** Prohibit instantiation. */

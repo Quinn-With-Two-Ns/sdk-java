@@ -753,12 +753,12 @@ public final class WorkflowInternal {
     return getRootWorkflowContext().isEveryHandlerFinished();
   }
 
-  public static NexusClient newNexusClient(String endpoint, String service) {
+  public static NexusClient newNexusClient(String endpoint) {
     return new NexusClientImpl(
-        endpoint, service, getWorkflowOutboundInterceptor(), WorkflowInternal::assertNotReadOnly);
+        endpoint, getWorkflowOutboundInterceptor(), WorkflowInternal::assertNotReadOnly);
   }
 
-  private static WorkflowOutboundCallsInterceptor getWorkflowOutboundInterceptor() {
+  static WorkflowOutboundCallsInterceptor getWorkflowOutboundInterceptor() {
     return getRootWorkflowContext().getWorkflowOutboundInterceptor();
   }
 

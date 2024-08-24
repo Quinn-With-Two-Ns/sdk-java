@@ -18,24 +18,19 @@
  * limitations under the License.
  */
 
-package io.temporal.workflow;
+package io.temporal.workflow.nexus;
 
-import io.temporal.common.Experimental;
-import java.lang.reflect.Type;
-import java.util.Optional;
+import io.nexusrpc.Operation;
+import io.nexusrpc.Service;
 
-@Experimental
-public interface NexusOperationStub {
+@Service
+public interface GreetingService {
+  @Operation
+  String sayHello1(String name);
 
-  Promise<Optional<String>> getExecution();
+  @Operation
+  String sayHello2(String name);
 
-  NexusOperationOptions getOptions();
-
-  <R> R execute(Class<R> resultClass, Object arg);
-
-  <R> R execute(Class<R> resultClass, Type resultType, Object arg);
-
-  <R> Promise<R> executeAsync(Class<R> resultClass, Object arg);
-
-  <R> Promise<R> executeAsync(Class<R> resultClass, Type resultType, Object arg);
+  @Operation
+  String fail(String name);
 }

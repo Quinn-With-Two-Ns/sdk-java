@@ -21,6 +21,7 @@
 package io.temporal.client;
 
 import com.google.common.base.Defaults;
+import io.temporal.api.common.v1.Callback;
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.api.enums.v1.WorkflowIdReusePolicy;
 import io.temporal.common.CronSchedule;
@@ -36,8 +37,7 @@ import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.WorkflowMethod;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Dynamic implementation of a strongly typed workflow interface that can be used to start, signal
@@ -50,6 +50,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
     START,
     EXECUTE,
     SIGNAL_WITH_START,
+    START_NEXUS,
   }
 
   interface SpecificInvocationHandler {
@@ -85,6 +86,9 @@ class WorkflowInvocationHandler implements InvocationHandler {
     } else if (type == InvocationType.SIGNAL_WITH_START) {
       SignalWithStartBatchRequest batch = (SignalWithStartBatchRequest) value;
       invocationContext.set(new SignalWithStartWorkflowInvocationHandler(batch));
+    } else if (type == InvocationType.START_NEXUS) {
+      NexusStartWorkflowRequest request = (NexusStartWorkflowRequest) value;
+      invocationContext.set(new StartNexusOperationInvocationHandler(request));
     } else {
       throw new IllegalArgumentException("Unexpected InvocationType: " + type);
     }
@@ -392,6 +396,59 @@ class WorkflowInvocationHandler implements InvocationHandler {
     @Override
     public <R> R getResult(Class<R> resultClass) {
       throw new IllegalStateException("No result is expected");
+    }
+  }
+
+  private static class StartNexusOperationInvocationHandler implements SpecificInvocationHandler {
+    private final NexusStartWorkflowRequest request;
+    private Object result;
+
+    public StartNexusOperationInvocationHandler(NexusStartWorkflowRequest request) {
+      this.request = request;
+    }
+
+    @Override
+    public InvocationType getInvocationType() {
+      return InvocationType.START_NEXUS;
+    }
+
+    @Override
+    public void invoke(
+        POJOWorkflowInterfaceMetadata workflowMetadata,
+        WorkflowStub untyped,
+        Method method,
+        Object[] args) {
+      WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
+      if (workflowMethod == null) {
+        throw new IllegalArgumentException(
+            "WorkflowClient.start can be called only on a method annotated with @WorkflowMethod");
+      }
+      WorkflowStubImpl stubImpl = (WorkflowStubImpl) untyped;
+      WorkflowOptions o = stubImpl.getOptions().get();
+      WorkflowOptions.Builder opt =
+          WorkflowOptions.newBuilder(o)
+              .setRequestID(request.getRequestId())
+              .setCallbacks(
+                  Arrays.asList(
+                      Callback.newBuilder()
+                          .setNexus(
+                              Callback.Nexus.newBuilder()
+                                  .setUrl(request.getCallbackUrl())
+                                  .putAllHeader(request.getCallbackHeaders())
+                                  .build())
+                          .build()));
+      if (o.getTaskQueue() == null) {
+        opt.setTaskQueue(request.getTaskQueue());
+      } else {
+        opt.setTaskQueue(o.getTaskQueue());
+      }
+      result = stubImpl.startWithOptions(opt.build(), args);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <R> R getResult(Class<R> resultClass) {
+      return (R) result;
     }
   }
 }
