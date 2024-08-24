@@ -18,24 +18,40 @@
  * limitations under the License.
  */
 
-package io.temporal.workflow;
+package io.temporal.internal.nexus;
 
+import io.temporal.client.WorkflowClient;
 import io.temporal.common.Experimental;
-import java.lang.reflect.Type;
-import java.util.Optional;
 
 @Experimental
-public interface NexusOperationStub {
+public class NexusContext {
+  private static final ThreadLocal<NexusContext> currentNexusContext = new ThreadLocal<>();
 
-  Promise<Optional<String>> getExecution();
+  public static NexusContext get() {
+    return currentNexusContext.get();
+  }
 
-  NexusOperationOptions getOptions();
+  public static void set(NexusContext context) {
+    currentNexusContext.set(context);
+  }
 
-  <R> R execute(Class<R> resultClass, Object arg);
+  public static void remove() {
+    currentNexusContext.remove();
+  }
 
-  <R> R execute(Class<R> resultClass, Type resultType, Object arg);
+  public WorkflowClient getWorkflowClient() {
+    return workflowClient;
+  }
 
-  <R> Promise<R> executeAsync(Class<R> resultClass, Object arg);
+  public String getTaskQueue() {
+    return taskQueue;
+  }
 
-  <R> Promise<R> executeAsync(Class<R> resultClass, Type resultType, Object arg);
+  private final WorkflowClient workflowClient;
+  private final String taskQueue;
+
+  public NexusContext(WorkflowClient workflowClient, String taskQueue) {
+    this.workflowClient = workflowClient;
+    this.taskQueue = taskQueue;
+  }
 }

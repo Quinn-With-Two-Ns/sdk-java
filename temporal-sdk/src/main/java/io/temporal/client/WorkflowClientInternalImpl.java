@@ -567,4 +567,16 @@ final class WorkflowClientInternalImpl implements WorkflowClient, WorkflowClient
   public void deregisterWorkerFactory(WorkerFactory workerFactory) {
     workerFactoryRegistry.deregister(workerFactory);
   }
+
+  static <A1, R> WorkflowExecution startNexus(
+      NexusStartWorkflowRequest request, Functions.Func1<A1, R> workflow, A1 arg) {
+    enforceNonWorkflowThread();
+    WorkflowInvocationHandler.initAsyncInvocation(InvocationType.START_NEXUS, request);
+    try {
+      workflow.apply(arg);
+      return WorkflowInvocationHandler.getAsyncInvocationResult(WorkflowExecution.class);
+    } finally {
+      WorkflowInvocationHandler.closeAsyncInvocation();
+    }
+  }
 }

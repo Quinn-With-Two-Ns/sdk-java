@@ -188,7 +188,7 @@ public class TracingWorkerInterceptor implements WorkerInterceptor {
     }
 
     @Override
-    public <R> NexusOperationOutput<R> executeNexusOperation(NexusOperationInput<R> input) {
+    public <R> ExecuteNexusOperationOutput<R> executeNexusOperation(ExecuteNexusOperationInput<R> input) {
       if (!WorkflowUnsafe.isReplaying()) {
         trace.add("executeNexusOperation " + input.getOperation());
       }

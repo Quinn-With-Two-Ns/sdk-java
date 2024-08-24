@@ -258,7 +258,7 @@ public interface WorkflowOutboundCallsInterceptor {
   }
 
   @Experimental
-  final class NexusOperationInput<R> {
+  final class ExecuteNexusOperationInput<R> {
     private final String endpoint;
     private final String service;
     private final String operation;
@@ -268,7 +268,7 @@ public interface WorkflowOutboundCallsInterceptor {
     private final NexusOperationOptions options;
     private final Map<String, String> headers;
 
-    public NexusOperationInput(
+    public ExecuteNexusOperationInput(
         String endpoint,
         String service,
         String operation,
@@ -321,11 +321,11 @@ public interface WorkflowOutboundCallsInterceptor {
   }
 
   @Experimental
-  final class NexusOperationOutput<R> {
+  final class ExecuteNexusOperationOutput<R> {
     private final Promise<R> result;
     private final Promise<Optional<String>> operationExecution;
 
-    public NexusOperationOutput(Promise<R> result, Promise<Optional<String>> operationExecution) {
+    public ExecuteNexusOperationOutput(Promise<R> result, Promise<Optional<String>> operationExecution) {
       this.result = result;
       this.operationExecution = operationExecution;
     }
@@ -654,7 +654,7 @@ public interface WorkflowOutboundCallsInterceptor {
   <R> ChildWorkflowOutput<R> executeChildWorkflow(ChildWorkflowInput<R> input);
 
   @Experimental
-  <R> NexusOperationOutput<R> executeNexusOperation(NexusOperationInput<R> input);
+  <R> ExecuteNexusOperationOutput<R> executeNexusOperation(ExecuteNexusOperationInput<R> input);
 
   Random newRandom();
 

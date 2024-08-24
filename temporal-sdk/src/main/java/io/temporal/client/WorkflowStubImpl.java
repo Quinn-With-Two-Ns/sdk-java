@@ -96,7 +96,7 @@ class WorkflowStubImpl implements WorkflowStub {
     }
   }
 
-  private WorkflowExecution startWithOptions(WorkflowOptions options, Object... args) {
+  WorkflowExecution startWithOptions(WorkflowOptions options, Object... args) {
     checkExecutionIsNotStarted();
     String workflowId = getWorkflowIdForStart(options);
     WorkflowExecution workflowExecution = null;
