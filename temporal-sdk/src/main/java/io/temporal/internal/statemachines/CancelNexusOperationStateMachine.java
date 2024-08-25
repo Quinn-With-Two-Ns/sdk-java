@@ -34,7 +34,7 @@ final class CancelNexusOperationStateMachine
 
   private final RequestCancelNexusOperationCommandAttributes requestCancelNexusAttributes;
 
-  private final Functions.Proc completionCallback;
+  private final Functions.Proc1<Void> completionCallback;
 
   /**
    * @param attributes attributes to use to cancel a nexus operation
@@ -43,7 +43,7 @@ final class CancelNexusOperationStateMachine
    */
   public static void newInstance(
       RequestCancelNexusOperationCommandAttributes attributes,
-      Functions.Proc completionCallback,
+      Functions.Proc1<Void> completionCallback,
       Functions.Proc1<CancellableCommand> commandSink,
       Functions.Proc1<StateMachine> stateMachineSink) {
     new CancelNexusOperationStateMachine(
@@ -52,7 +52,7 @@ final class CancelNexusOperationStateMachine
 
   private CancelNexusOperationStateMachine(
       RequestCancelNexusOperationCommandAttributes attributes,
-      Functions.Proc completionCallback,
+      Functions.Proc1<Void> completionCallback,
       Functions.Proc1<CancellableCommand> commandSink,
       Functions.Proc1<StateMachine> stateMachineSink) {
     super(STATE_MACHINE_DEFINITION, commandSink, stateMachineSink);
@@ -101,6 +101,6 @@ final class CancelNexusOperationStateMachine
 
   private void notifyCompleted() {
     setInitialCommandEventId();
-    completionCallback.apply();
+    completionCallback.apply(null);
   }
 }
