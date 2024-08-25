@@ -325,7 +325,8 @@ public interface WorkflowOutboundCallsInterceptor {
     private final Promise<R> result;
     private final Promise<Optional<String>> operationExecution;
 
-    public ExecuteNexusOperationOutput(Promise<R> result, Promise<Optional<String>> operationExecution) {
+    public ExecuteNexusOperationOutput(
+        Promise<R> result, Promise<Optional<String>> operationExecution) {
       this.result = result;
       this.operationExecution = operationExecution;
     }

@@ -704,7 +704,8 @@ final class SyncWorkflowContext implements WorkflowContext, WorkflowOutboundCall
   }
 
   @Override
-  public <R> ExecuteNexusOperationOutput<R> executeNexusOperation(ExecuteNexusOperationInput<R> input) {
+  public <R> ExecuteNexusOperationOutput<R> executeNexusOperation(
+      ExecuteNexusOperationInput<R> input) {
     if (CancellationScope.current().isCancelRequested()) {
       CanceledFailure canceledFailure =
           new CanceledFailure("execute nexus operation called from a canceled scope");

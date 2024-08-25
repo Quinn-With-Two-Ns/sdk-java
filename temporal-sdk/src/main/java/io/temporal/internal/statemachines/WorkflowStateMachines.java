@@ -1219,6 +1219,41 @@ public final class WorkflowStateMachines {
               eventAttributes.getTimerId());
         }
         break;
+      case COMMAND_TYPE_SCHEDULE_NEXUS_OPERATION:
+        {
+          ScheduleNexusOperationCommandAttributes commandAttributes =
+              command.getScheduleNexusOperationCommandAttributes();
+          NexusOperationScheduledEventAttributes eventAttributes =
+              event.getNexusOperationScheduledEventAttributes();
+          // TODO: Check endpoint?
+          assertMatch(
+              command,
+              event,
+              "operation",
+              commandAttributes.getOperation(),
+              eventAttributes.getOperation());
+          assertMatch(
+              command,
+              event,
+              "service",
+              commandAttributes.getService(),
+              eventAttributes.getService());
+        }
+        break;
+      case COMMAND_TYPE_REQUEST_CANCEL_NEXUS_OPERATION:
+        {
+          RequestCancelNexusOperationCommandAttributes commandAttributes =
+              command.getRequestCancelNexusOperationCommandAttributes();
+          NexusOperationCancelRequestedEventAttributes eventAttributes =
+              event.getNexusOperationCancelRequestedEventAttributes();
+          assertMatch(
+              command,
+              event,
+              "scheduleEventId",
+              commandAttributes.getScheduledEventId(),
+              eventAttributes.getScheduledEventId());
+        }
+        break;
       case COMMAND_TYPE_CANCEL_TIMER:
       case COMMAND_TYPE_CANCEL_WORKFLOW_EXECUTION:
       case COMMAND_TYPE_REQUEST_CANCEL_EXTERNAL_WORKFLOW_EXECUTION:
