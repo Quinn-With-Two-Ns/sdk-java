@@ -84,9 +84,9 @@ public class NexusTest {
       if (useStub) {
         GreetingService greetingService =
             nexusClient.newServiceStub(GreetingService.class, options);
-        String result = greetingService.sayHello2(taskQueue);
-        String r = Async.function(greetingService::sayHello1, taskQueue).get();
-        return result + r;
+        String result = greetingService.sayHello1(taskQueue);
+        // String r = Async.function(greetingService::sayHello1, taskQueue).get();
+        return result;
       } else {
         NexusOperationStub nexusStub =
             nexusClient.newUntypedNexusOperationStub("GreetingService", "sayHello1", options);

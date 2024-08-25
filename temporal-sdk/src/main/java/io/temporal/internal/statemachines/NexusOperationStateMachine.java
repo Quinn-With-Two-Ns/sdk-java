@@ -42,6 +42,7 @@ public class NexusOperationStateMachine
 
   private ScheduleNexusOperationCommandAttributes scheduleAttributes;
   private final Functions.Proc2<Optional<String>, Failure> startedCallback;
+  private boolean async = false;
 
   private final Functions.Proc2<Optional<Payload>, Failure> completionCallback;
   private final String endpoint;
@@ -179,13 +180,16 @@ public class NexusOperationStateMachine
   }
 
   private void notifyStarted() {
-    // TODO(quinn) add some check to prevent duplicate calls if notifyStarted is called for of the
-    // sync path
-    if (currentEvent.getEventType() != EventType.EVENT_TYPE_NEXUS_OPERATION_STARTED) {
-      startedCallback.apply(Optional.empty(), null);
+    if (!async) {
+      if (currentEvent.getEventType() != EventType.EVENT_TYPE_NEXUS_OPERATION_STARTED) {
+        startedCallback.apply(Optional.empty(), null);
+      } else {
+        async = true;
+        startedCallback.apply(
+            Optional.of(currentEvent.getNexusOperationStartedEventAttributes().getOperationId()),
+            null);
+      }
     }
-    startedCallback.apply(
-        Optional.of(currentEvent.getNexusOperationStartedEventAttributes().getOperationId()), null);
   }
 
   private void notifyCompleted() {

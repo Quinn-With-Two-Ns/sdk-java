@@ -53,7 +53,5 @@ class PayloadSerializer implements Serializer {
     } catch (InvalidProtocolBufferException e) {
       throw new RuntimeException(e);
     }
-    // payload.setData(ByteString.copyFrom(content.getData()));
-    // content.getHeaders().forEach((k, v) -> payload.putMetadata(k, ByteString.copyFromUtf8(v)));
   }
 }
