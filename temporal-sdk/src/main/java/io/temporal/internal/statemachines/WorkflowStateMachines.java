@@ -1437,6 +1437,7 @@ public final class WorkflowStateMachines {
       case EVENT_TYPE_WORKFLOW_EXECUTION_UPDATE_ADMITTED:
       case EVENT_TYPE_WORKFLOW_PROPERTIES_MODIFIED:
       case EVENT_TYPE_NEXUS_OPERATION_SCHEDULED:
+      case EVENT_TYPE_NEXUS_OPERATION_CANCEL_REQUESTED:
         return OptionalLong.of(event.getEventId());
 
       default:

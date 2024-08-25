@@ -22,17 +22,38 @@ package io.temporal.workflow;
 
 import io.temporal.common.Experimental;
 
+/**
+ * NexusClient is a client for executing Nexus Operations from a workflow. Created through {@link
+ * Workflow#newNexusClient}.
+ */
 @Experimental
 public interface NexusClient {
+  /**
+   * Get the endpoint of the nexus client.
+   *
+   * @return endpoint of the nexus client.
+   */
   String getEndpoint();
 
+  /**
+   * Creates a service stub that can be used to start operations on the given service interface.
+   *
+   * @param service interface that given service implements.
+   */
   <T> T newServiceStub(Class<T> service);
 
+  /**
+   * Creates a service stub that can be used to start operations on the given service interface.
+   *
+   * @param service interface that given service implements.
+   * @param options options passed to the nexus operations.
+   */
   <T> T newServiceStub(Class<T> service, NexusOperationOptions options);
 
   /**
    * Creates untyped client stub that can be used to execute a Nexus operation.
    *
+   * @param service name of the service the operation is part of.
    * @param operation name of the operation to start.
    * @param options options passed to the nexus operation.
    */
