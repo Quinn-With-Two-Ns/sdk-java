@@ -899,7 +899,7 @@ public final class WorkflowStateMachines {
             RequestCancelNexusOperationCommandAttributes.newBuilder()
                 .setScheduledEventId(operation.getInitialCommandEventId())
                 .build(),
-            () -> {});
+            (v) -> {});
       }
     };
   }
@@ -940,7 +940,8 @@ public final class WorkflowStateMachines {
    * @param completionCallback one of ExternalWorkflowExecutionCancelRequestedEvent,
    */
   public void requestCancelNexusOperation(
-      RequestCancelNexusOperationCommandAttributes attributes, Functions.Proc completionCallback) {
+      RequestCancelNexusOperationCommandAttributes attributes,
+      Functions.Proc1<Void> completionCallback) {
     checkEventLoopExecuting();
     CancelNexusOperationStateMachine.newInstance(
         attributes, completionCallback, commandSink, stateMachineSink);
