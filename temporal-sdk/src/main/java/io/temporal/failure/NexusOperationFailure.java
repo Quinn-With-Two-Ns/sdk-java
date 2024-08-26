@@ -34,7 +34,6 @@ public final class NexusOperationFailure extends TemporalFailure {
   private final long scheduledEventId;
   private final String endpoint;
   private final String service;
-  // Operation name.
   private final String operation;
   private final String operationId;
 

@@ -13,6 +13,7 @@ dependencies {
     compileOnly project(':temporal-testing')
 
     api "org.springframework.boot:spring-boot-autoconfigure"
+    api "io.nexusrpc:nexus-sdk:0.1.0"
 
     api project(':temporal-opentracing')
     implementation "io.opentelemetry:opentelemetry-api"
