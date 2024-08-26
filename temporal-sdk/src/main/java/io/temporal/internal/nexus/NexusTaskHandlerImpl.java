@@ -32,16 +32,20 @@ import io.temporal.client.WorkflowClient;
 import io.temporal.common.converter.DataConverter;
 import io.temporal.internal.worker.NexusTask;
 import io.temporal.internal.worker.NexusTaskHandler;
+import io.temporal.worker.TypeAlreadyRegisteredException;
+import java.util.*;
 
 public class NexusTaskHandlerImpl implements NexusTaskHandler {
   private final DataConverter dataConverter;
   private final String namespace;
   private final String taskQueue;
 
-  private final ServiceHandler.Builder serviceHandlerBuilder = ServiceHandler.newBuilder();
   private final WorkflowClient client;
 
   private ServiceHandler serviceHandler;
+
+  private final Map<String, ServiceImplInstance> serviceImplInstances =
+      Collections.synchronizedMap(new HashMap<>());
 
   public NexusTaskHandlerImpl(
       WorkflowClient client, String namespace, String taskQueue, DataConverter dataConverter) {
@@ -49,15 +53,21 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
     this.namespace = namespace;
     this.taskQueue = taskQueue;
     this.dataConverter = dataConverter;
-    serviceHandlerBuilder.setSerializer(new PayloadSerializer(dataConverter));
   }
 
   @Override
-  public boolean isAnyOperationSupported() {
-    // TODO: This is a temporary implementation. Maybe need to seperate the concept of the handler
-    // out of the
+  public boolean start() {
+    if (serviceImplInstances.isEmpty()) {
+      return false;
+    }
+    ServiceHandler.Builder serviceHandlerBuilder =
+        ServiceHandler.newBuilder().setSerializer(new PayloadSerializer(dataConverter));
+    serviceImplInstances.forEach(
+        (name, instance) -> {
+          serviceHandlerBuilder.addInstance(instance);
+        });
     serviceHandler = serviceHandlerBuilder.build();
-    return !serviceHandler.getInstances().isEmpty();
+    return true;
   }
 
   @Override
@@ -177,8 +187,12 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
       throw new IllegalArgumentException("Nexus service object instance expected, not the class");
     }
     ServiceImplInstance instance = ServiceImplInstance.fromInstance(nexusService);
-    // TODO(quinn) this should handle duplicates by throwing an exception and not silently ignoring
-    // TODO(quinn) this should be thread safe
-    serviceHandlerBuilder.addInstance(instance);
+    if (serviceImplInstances.put(instance.getDefinition().getName(), instance) != null) {
+      throw new TypeAlreadyRegisteredException(
+          instance.getDefinition().getName(),
+          "\""
+              + instance.getDefinition().getName()
+              + "\" service type is already registered with the worker");
+    }
   }
 }

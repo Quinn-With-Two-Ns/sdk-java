@@ -90,7 +90,7 @@ final class NexusWorker implements SuspendableWorker {
 
   @Override
   public boolean start() {
-    if (handler.isAnyOperationSupported()) {
+    if (handler.start()) {
       this.pollTaskExecutor =
           new PollTaskExecutor<>(
               namespace,
@@ -231,7 +231,7 @@ final class NexusWorker implements SuspendableWorker {
     }
 
     @Override
-    public void handle(NexusTask task) throws Exception {
+    public void handle(NexusTask task) {
       PollNexusTaskQueueResponseOrBuilder pollResponse = task.getResponse();
       // TODO(quinn) fill nexus slot info
       slotSupplier.markSlotUsed(
@@ -250,12 +250,6 @@ final class NexusWorker implements SuspendableWorker {
           task.getCompletionCallback().apply();
         }
       }
-
-      //            if (result.getTaskFailed() != null && result.getTaskFailed().getFailure()
-      // instanceof Error) {
-      //                // don't just swallow Errors, we need to propagate it to the top
-      //                throw (Error) result.getTaskFailed().getFailure();
-      //            }
     }
 
     @Override

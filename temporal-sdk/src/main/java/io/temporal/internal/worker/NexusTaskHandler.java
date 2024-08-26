@@ -27,8 +27,13 @@ import javax.annotation.Nullable;
 
 public interface NexusTaskHandler {
 
-  /** True if this handler handles at least one nexus service. */
-  boolean isAnyOperationSupported();
+  /**
+   * Start the handler if the handler has any registered services. It is an error to start a handler
+   * more than once.
+   *
+   * @return True if this handler can handle at least one nexus service.
+   */
+  boolean start();
 
   NexusTaskHandler.Result handle(NexusTask task, Scope metricsScope);
 
