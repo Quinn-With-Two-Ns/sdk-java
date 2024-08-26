@@ -80,6 +80,8 @@ public final class WorkflowOptions {
         .setDisableEagerExecution(o.isDisableEagerExecution())
         .setStartDelay(o.getStartDelay())
         .setWorkflowIdConflictPolicy(o.getWorkflowIdConflictPolicy())
+        .setRequestID(o.getRequestID())
+        .setCallbacks(o.getCallbacks())
         .validateBuildWithDefaults();
   }
 

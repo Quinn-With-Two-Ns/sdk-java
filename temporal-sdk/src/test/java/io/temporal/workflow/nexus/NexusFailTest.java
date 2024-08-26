@@ -33,6 +33,8 @@ import io.temporal.failure.NexusOperationFailure;
 import io.temporal.testing.internal.SDKTestWorkflowRule;
 import io.temporal.workflow.*;
 import io.temporal.workflow.shared.TestWorkflows.TestWorkflow1;
+import io.temporal.workflow.shared.nexus.TestNexusService;
+import io.temporal.workflow.shared.nexus.TestNexusServiceImpl;
 import java.time.Duration;
 import java.util.UUID;
 import org.junit.*;
@@ -46,7 +48,7 @@ public class NexusFailTest {
       SDKTestWorkflowRule.newBuilder()
           .setUseExternalService(true)
           .setWorkflowTypes(TestNexus.class)
-          .setNexusServiceImplementation(new GreetingServiceImpl())
+          .setNexusServiceImplementation(new TestNexusServiceImpl())
           .build();
 
   @Before
@@ -89,8 +91,10 @@ public class NexusFailTest {
           NexusOperationOptions.newBuilder()
               .setScheduleToCloseTimeout(Duration.ofSeconds(5))
               .build();
-      GreetingService greetingService = nexusClient.newServiceStub(GreetingService.class, options);
-      greetingService.fail(Workflow.getInfo().getWorkflowId());
+      TestNexusService testNexusService =
+          nexusClient.newServiceStub(TestNexusService.class, options);
+      testNexusService.fail(Workflow.getInfo().getWorkflowId());
+      // Workflow will not reach this point
       return "fail";
     }
   }

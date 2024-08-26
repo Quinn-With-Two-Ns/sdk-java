@@ -30,11 +30,13 @@ import io.temporal.api.operatorservice.v1.CreateNexusEndpointResponse;
 import io.temporal.testing.internal.SDKTestWorkflowRule;
 import io.temporal.workflow.*;
 import io.temporal.workflow.shared.TestWorkflows;
+import io.temporal.workflow.shared.nexus.TestNexusService;
+import io.temporal.workflow.shared.nexus.TestNexusServiceImpl;
 import java.time.Duration;
 import java.util.UUID;
 import org.junit.*;
 
-public class NexusTest {
+public class NexusSyncOperationTest {
   static final String ENDPOINT_NAME = "test-endpoint-" + UUID.randomUUID();
   Endpoint endpoint;
 
@@ -42,8 +44,8 @@ public class NexusTest {
   public SDKTestWorkflowRule testWorkflowRule =
       SDKTestWorkflowRule.newBuilder()
           .setUseExternalService(true)
-          .setWorkflowTypes(TestNexus.class, TestWorkflow1Impl.class)
-          .setNexusServiceImplementation(new GreetingServiceImpl())
+          .setWorkflowTypes(TestNexus.class)
+          .setNexusServiceImplementation(new TestNexusServiceImpl())
           .build();
 
   @Before
@@ -66,41 +68,24 @@ public class NexusTest {
 
   @Test
   public void syncOperation() {
-    TestWorkflows.TestWorkflow2 workflowStub =
-        testWorkflowRule.newWorkflowStubTimeoutOptions(TestWorkflows.TestWorkflow2.class);
-    String result = workflowStub.execute(testWorkflowRule.getTaskQueue(), "");
-    System.out.println("syncOperation: " + result);
+    TestWorkflows.TestWorkflow1 workflowStub =
+        testWorkflowRule.newWorkflowStubTimeoutOptions(TestWorkflows.TestWorkflow1.class);
+    String result = workflowStub.execute(testWorkflowRule.getTaskQueue());
+    Assert.assertEquals("Hello, " + testWorkflowRule.getTaskQueue() + "!", result);
   }
 
-  public static class TestNexus implements TestWorkflows.TestWorkflow2 {
+  public static class TestNexus implements TestWorkflows.TestWorkflow1 {
     @Override
-    public String execute(String taskQueue, String arg2) {
+    public String execute(String name) {
       NexusClient nexusClient = Workflow.newNexusClient(ENDPOINT_NAME);
       NexusOperationOptions options =
           NexusOperationOptions.newBuilder()
               .setScheduleToCloseTimeout(Duration.ofSeconds(5))
               .build();
-      Boolean useStub = true;
-      if (useStub) {
-        GreetingService greetingService =
-            nexusClient.newServiceStub(GreetingService.class, options);
-        String result = greetingService.sayHello1(taskQueue);
-        // String r = Async.function(greetingService::sayHello1, taskQueue).get();
-        return result;
-      } else {
-        NexusOperationStub nexusStub =
-            nexusClient.newUntypedNexusOperationStub("GreetingService", "sayHello1", options);
-        return nexusStub.execute(String.class, taskQueue);
-      }
-    }
-  }
-
-  public static class TestWorkflow1Impl implements TestWorkflows.TestWorkflow1 {
-
-    @Override
-    public String execute(String arg) {
-      Workflow.sleep(Duration.ofSeconds(1));
-      return "Workflow: ^^^^" + arg;
+      TestNexusService testNexusService =
+          nexusClient.newServiceStub(TestNexusService.class, options);
+      String result = testNexusService.sayHello1(name);
+      return result;
     }
   }
 

@@ -18,18 +18,18 @@
  * limitations under the License.
  */
 
-package io.temporal.workflow.nexus;
+package io.temporal.workflow.shared.nexus;
 
 import io.nexusrpc.Operation;
 import io.nexusrpc.Service;
 
 @Service
-public interface GreetingService {
+public interface TestNexusService {
   @Operation
   String sayHello1(String name);
 
   @Operation
-  String sayHello2(String name);
+  String runWorkflow(String name);
 
   @Operation
   String fail(String name);

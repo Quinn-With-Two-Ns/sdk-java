@@ -21,7 +21,7 @@
 package io.temporal.client;
 
 import com.google.common.base.Defaults;
-import io.temporal.api.common.v1.Callback;
+import com.google.common.base.Preconditions;
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.api.enums.v1.WorkflowIdReusePolicy;
 import io.temporal.common.CronSchedule;
@@ -423,26 +423,10 @@ class WorkflowInvocationHandler implements InvocationHandler {
         throw new IllegalArgumentException(
             "WorkflowClient.start can be called only on a method annotated with @WorkflowMethod");
       }
-      WorkflowStubImpl stubImpl = (WorkflowStubImpl) untyped;
-      WorkflowOptions o = stubImpl.getOptions().get();
-      WorkflowOptions.Builder opt =
-          WorkflowOptions.newBuilder(o)
-              .setRequestID(request.getRequestId())
-              .setCallbacks(
-                  Arrays.asList(
-                      Callback.newBuilder()
-                          .setNexus(
-                              Callback.Nexus.newBuilder()
-                                  .setUrl(request.getCallbackUrl())
-                                  .putAllHeader(request.getCallbackHeaders())
-                                  .build())
-                          .build()));
-      if (o.getTaskQueue() == null) {
-        opt.setTaskQueue(request.getTaskQueue());
-      } else {
-        opt.setTaskQueue(o.getTaskQueue());
-      }
-      result = stubImpl.startWithOptions(opt.build(), args);
+      WorkflowOptions options = untyped.getOptions().get();
+      Preconditions.checkNotNull(options.getRequestID());
+      Preconditions.checkNotNull(options.getCallbacks());
+      result = untyped.start(args);
     }
 
     @Override

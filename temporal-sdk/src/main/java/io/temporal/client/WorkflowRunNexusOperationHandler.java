@@ -22,55 +22,64 @@ package io.temporal.client;
 
 import io.nexusrpc.OperationInfo;
 import io.nexusrpc.OperationNotFoundException;
-import io.nexusrpc.OperationStillRunningException;
 import io.nexusrpc.OperationUnsuccessfulException;
 import io.nexusrpc.handler.*;
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.common.Experimental;
 import io.temporal.internal.nexus.NexusContext;
-import io.temporal.workflow.Functions;
 
+/** WorkflowRunNexusOperationHandler is a OperationHandler that will trigger a workflow run */
 @Experimental
 public class WorkflowRunNexusOperationHandler<T, R> implements OperationHandler<T, R> {
 
-  private final Functions.Func3<WorkflowClient, OperationStartDetails, T, Functions.Func1<T, R>>
-      startMethod;
+  private final WorkflowMethodFactory<T, R> startMethod;
 
-  private WorkflowRunNexusOperationHandler(
-      Functions.Func3<WorkflowClient, OperationStartDetails, T, Functions.Func1<T, R>>
-          startMethod) {
+  private WorkflowRunNexusOperationHandler(WorkflowMethodFactory<T, R> startMethod) {
     this.startMethod = startMethod;
   }
 
-  public static <T, R> WorkflowRunNexusOperationHandler<T, R> forWorkflow(
-      Functions.Func3<WorkflowClient, OperationStartDetails, T, Functions.Func1<T, R>>
-          startMethod) {
-    return new WorkflowRunNexusOperationHandler(startMethod);
+  /**
+   * Maps a workflow method to a nexus operation handler.
+   *
+   * @param startMethod returns the workflow method reference to call
+   * @return Operation handler to be used as an {@link OperationImpl}
+   */
+  public static <T, R> WorkflowRunNexusOperationHandler<T, R> fromWorkflowMethod(
+      WorkflowMethodFactory<T, R> startMethod) {
+    return new WorkflowRunNexusOperationHandler<>(startMethod);
   }
 
   @Override
   public OperationStartResult<R> start(
-      OperationContext operationContext, OperationStartDetails operationStartDetails, T input)
+      OperationContext ctx, OperationStartDetails operationStartDetails, T input)
       throws OperationUnsuccessfulException {
-    WorkflowClient client = NexusContext.get().getWorkflowClient();
+    NexusContext nexusCtx = NexusContext.get();
+    WorkflowClient client =
+        new NexusWorkflowClientWrapper(
+            nexusCtx.getWorkflowClient(),
+            operationStartDetails.getRequestId(),
+            operationStartDetails.getCallbackUrl(),
+            operationStartDetails.getCallbackHeaders(),
+            nexusCtx.getTaskQueue());
+
     NexusStartWorkflowRequest nexusStartWorkflowRequest =
         new NexusStartWorkflowRequest(
             operationStartDetails.getRequestId(),
             operationStartDetails.getCallbackUrl(),
             operationStartDetails.getCallbackHeaders(),
             NexusContext.get().getTaskQueue());
+
     WorkflowExecution exec =
         WorkflowClientInternalImpl.startNexus(
             nexusStartWorkflowRequest,
-            startMethod.apply(client, operationStartDetails, input),
+            startMethod.apply(ctx, operationStartDetails, client, input),
             input);
     return OperationStartResult.async(exec.getWorkflowId());
   }
 
   @Override
   public R fetchResult(
-      OperationContext operationContext, OperationFetchResultDetails operationFetchResultDetails)
-      throws OperationNotFoundException, OperationStillRunningException {
+      OperationContext operationContext, OperationFetchResultDetails operationFetchResultDetails) {
     throw new UnsupportedOperationException("Not implemented");
   }
 

@@ -18,21 +18,18 @@
  * limitations under the License.
  */
 
-package io.temporal.workflow.nexus;
+package io.temporal.workflow.shared.nexus;
 
 import io.nexusrpc.OperationUnsuccessfulException;
-import io.nexusrpc.handler.OperationHandler;
-import io.nexusrpc.handler.OperationImpl;
-import io.nexusrpc.handler.OperationStartDetails;
-import io.nexusrpc.handler.ServiceImpl;
+import io.nexusrpc.handler.*;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.client.WorkflowRunNexusOperationHandler;
 import io.temporal.workflow.shared.TestWorkflows;
 
-@ServiceImpl(service = GreetingService.class)
-public class GreetingServiceImpl {
-  public GreetingServiceImpl() {}
+@ServiceImpl(service = TestNexusService.class)
+public class TestNexusServiceImpl {
+  public TestNexusServiceImpl() {}
 
   @OperationImpl
   public OperationHandler<String, String> sayHello1() {
@@ -41,10 +38,10 @@ public class GreetingServiceImpl {
   }
 
   @OperationImpl
-  public OperationHandler<String, String> sayHello2() {
+  public OperationHandler<String, String> runWorkflow() {
     // Implemented via handler
-    return WorkflowRunNexusOperationHandler.forWorkflow(
-        (WorkflowClient c, OperationStartDetails o, String input) -> {
+    return WorkflowRunNexusOperationHandler.fromWorkflowMethod(
+        (OperationContext ctx, OperationStartDetails o, WorkflowClient c, String input) -> {
           TestWorkflows.TestWorkflow1 workflow =
               c.newWorkflowStub(
                   TestWorkflows.TestWorkflow1.class,

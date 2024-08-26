@@ -30,12 +30,11 @@ import io.temporal.api.operatorservice.v1.CreateNexusEndpointResponse;
 import io.temporal.testing.internal.SDKTestWorkflowRule;
 import io.temporal.workflow.*;
 import io.temporal.workflow.shared.TestWorkflows;
+import io.temporal.workflow.shared.nexus.TestNexusService;
+import io.temporal.workflow.shared.nexus.TestNexusServiceImpl;
 import java.time.Duration;
 import java.util.UUID;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 public class NexusWorkflowTest {
   static final String ENDPOINT_NAME = "test-endpoint-" + UUID.randomUUID();
@@ -46,7 +45,7 @@ public class NexusWorkflowTest {
       SDKTestWorkflowRule.newBuilder()
           .setUseExternalService(true)
           .setWorkflowTypes(TestNexus.class, TestWorkflow1Impl.class)
-          .setNexusServiceImplementation(new GreetingServiceImpl())
+          .setNexusServiceImplementation(new TestNexusServiceImpl())
           .build();
 
   @Before
@@ -68,11 +67,11 @@ public class NexusWorkflowTest {
   }
 
   @Test
-  public void syncOperation() {
+  public void startWorkflowOperation() {
     TestWorkflows.TestWorkflow2 workflowStub =
         testWorkflowRule.newWorkflowStubTimeoutOptions(TestWorkflows.TestWorkflow2.class);
-    String result = workflowStub.execute(testWorkflowRule.getTaskQueue(), "");
-    System.out.println("syncOperation: " + result);
+    String result = workflowStub.execute(testWorkflowRule.getTaskQueue(), "Nexus");
+    Assert.assertEquals("Hello from workflow: Nexus", result);
   }
 
   public static class TestNexus implements TestWorkflows.TestWorkflow2 {
@@ -83,11 +82,9 @@ public class NexusWorkflowTest {
           NexusOperationOptions.newBuilder()
               .setScheduleToCloseTimeout(Duration.ofSeconds(10))
               .build();
-      GreetingService greetingService = nexusClient.newServiceStub(GreetingService.class, options);
-      Promise<String> workflowResult = Async.function(greetingService::sayHello2, taskQueue);
-      Workflow.sleep(Duration.ofSeconds(1));
-      CancellationScope.current().cancel();
-      return workflowResult.get();
+      TestNexusService testNexusService =
+          nexusClient.newServiceStub(TestNexusService.class, options);
+      return testNexusService.runWorkflow(arg2);
     }
   }
 
@@ -95,8 +92,7 @@ public class NexusWorkflowTest {
 
     @Override
     public String execute(String arg) {
-      Workflow.sleep(Duration.ofSeconds(5));
-      return "Workflow: ^^^^" + arg;
+      return "Hello from workflow: " + arg;
     }
   }
 
