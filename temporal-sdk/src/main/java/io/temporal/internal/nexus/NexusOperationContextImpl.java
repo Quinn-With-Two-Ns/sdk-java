@@ -20,38 +20,31 @@
 
 package io.temporal.internal.nexus;
 
+import com.uber.m3.tally.Scope;
 import io.temporal.client.WorkflowClient;
-import io.temporal.common.Experimental;
+import io.temporal.nexus.NexusOperationContext;
 
-@Experimental
-public class NexusContext {
-  private static final ThreadLocal<NexusContext> currentNexusContext = new ThreadLocal<>();
+public class NexusOperationContextImpl implements NexusOperationContext {
+  private final String taskQueue;
+  private final WorkflowClient client;
+  private final Scope metricsScope;
 
-  public static NexusContext get() {
-    return currentNexusContext.get();
+  public NexusOperationContextImpl(String taskQueue, WorkflowClient client, Scope metricsScope) {
+    this.taskQueue = taskQueue;
+    this.client = client;
+    this.metricsScope = metricsScope;
   }
 
-  public static void set(NexusContext context) {
-    currentNexusContext.set(context);
-  }
-
-  public static void remove() {
-    currentNexusContext.remove();
+  @Override
+  public Scope getMetricsScope() {
+    return metricsScope;
   }
 
   public WorkflowClient getWorkflowClient() {
-    return workflowClient;
+    return client;
   }
 
   public String getTaskQueue() {
     return taskQueue;
-  }
-
-  private final WorkflowClient workflowClient;
-  private final String taskQueue;
-
-  public NexusContext(WorkflowClient workflowClient, String taskQueue) {
-    this.workflowClient = workflowClient;
-    this.taskQueue = taskQueue;
   }
 }

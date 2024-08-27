@@ -71,7 +71,8 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
   public Result handle(NexusTask task, Scope metricsScope) {
     Request request = task.getResponse().getRequest();
     try {
-      NexusContext.set(new NexusContext(client, taskQueue));
+      CurrentNexusOperationContext.set(
+          new NexusOperationContextImpl(taskQueue, client, metricsScope));
       switch (request.getVariantCase()) {
         case START_OPERATION:
           StartOperationResponse startResponse = handleStartOperation(request.getStartOperation());
@@ -98,7 +99,7 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
                       .build())
               .build());
     } finally {
-      NexusContext.remove();
+      CurrentNexusOperationContext.unset();
     }
   }
 

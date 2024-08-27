@@ -26,7 +26,8 @@ import io.nexusrpc.OperationUnsuccessfulException;
 import io.nexusrpc.handler.*;
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.common.Experimental;
-import io.temporal.internal.nexus.NexusContext;
+import io.temporal.internal.nexus.CurrentNexusOperationContext;
+import io.temporal.internal.nexus.NexusOperationContextImpl;
 
 /** WorkflowRunNexusOperationHandler is a OperationHandler that will trigger a workflow run */
 @Experimental
@@ -53,7 +54,7 @@ public class WorkflowRunNexusOperationHandler<T, R> implements OperationHandler<
   public OperationStartResult<R> start(
       OperationContext ctx, OperationStartDetails operationStartDetails, T input)
       throws OperationUnsuccessfulException {
-    NexusContext nexusCtx = NexusContext.get();
+    NexusOperationContextImpl nexusCtx = CurrentNexusOperationContext.get();
     WorkflowClient client =
         new NexusWorkflowClientWrapper(
             nexusCtx.getWorkflowClient(),
@@ -67,7 +68,7 @@ public class WorkflowRunNexusOperationHandler<T, R> implements OperationHandler<
             operationStartDetails.getRequestId(),
             operationStartDetails.getCallbackUrl(),
             operationStartDetails.getCallbackHeaders(),
-            NexusContext.get().getTaskQueue());
+            CurrentNexusOperationContext.get().getTaskQueue());
 
     WorkflowExecution exec =
         WorkflowClientInternalImpl.startNexus(
@@ -93,7 +94,7 @@ public class WorkflowRunNexusOperationHandler<T, R> implements OperationHandler<
   public void cancel(
       OperationContext operationContext, OperationCancelDetails operationCancelDetails)
       throws OperationNotFoundException {
-    WorkflowClient client = NexusContext.get().getWorkflowClient();
+    WorkflowClient client = CurrentNexusOperationContext.get().getWorkflowClient();
     client.newUntypedWorkflowStub(operationCancelDetails.getOperationId()).cancel();
   }
 }
