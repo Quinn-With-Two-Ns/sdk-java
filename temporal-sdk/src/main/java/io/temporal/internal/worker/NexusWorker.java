@@ -210,39 +210,51 @@ final class NexusWorker implements SuspendableWorker {
       this.handler = handler;
     }
 
-    private Scope createMetricsScope(PollNexusTaskQueueResponseOrBuilder pollResponse) {
-      String service;
-      String operation;
+    private String getNexusTaskService(PollNexusTaskQueueResponseOrBuilder pollResponse) {
       Request request = pollResponse.getRequest();
       if (request.hasStartOperation()) {
-        service = request.getStartOperation().getService();
-        operation = request.getStartOperation().getOperation();
+        return request.getStartOperation().getService();
       } else if (request.hasCancelOperation()) {
-        service = request.getCancelOperation().getService();
-        operation = request.getCancelOperation().getOperation();
-      } else {
-        throw new IllegalArgumentException("Unknown nexus task type");
+        return request.getCancelOperation().getService();
       }
-      MDC.put(LoggerTag.NEXUS_SERVICE, service);
-      MDC.put(LoggerTag.NEXUS_OPERATION, operation);
-      return workerMetricsScope.tagged(
-          ImmutableMap.of(
-              MetricsTag.NEXUS_SERVICE, service, MetricsTag.NEXUS_OPERATION, operation));
+      return "";
+    }
+
+    private String getNexusTaskOperation(PollNexusTaskQueueResponseOrBuilder pollResponse) {
+      Request request = pollResponse.getRequest();
+      if (request.hasStartOperation()) {
+        return request.getStartOperation().getOperation();
+      } else if (request.hasCancelOperation()) {
+        return request.getCancelOperation().getOperation();
+      }
+      return "";
     }
 
     @Override
     public void handle(NexusTask task) {
       PollNexusTaskQueueResponseOrBuilder pollResponse = task.getResponse();
-      // TODO(quinn) fill nexus slot info
+      // Extract service and operation from the request and set them as MDC and metrics
+      // scope tags. If the request does not have a service or operation, do not set the tags.
+      // If we don't know how to handle the task, we will fail the task further down the line.
+      Scope metricsScope = workerMetricsScope;
+      String service = getNexusTaskService(pollResponse);
+      if (service.isEmpty()) {
+        MDC.put(LoggerTag.NEXUS_SERVICE, service);
+        metricsScope = metricsScope.tagged(ImmutableMap.of(MetricsTag.NEXUS_SERVICE, service));
+      }
+      String operation = getNexusTaskOperation(pollResponse);
+      if (operation.isEmpty()) {
+        MDC.put(LoggerTag.NEXUS_OPERATION, operation);
+        metricsScope = metricsScope.tagged(ImmutableMap.of(MetricsTag.NEXUS_OPERATION, operation));
+      }
       slotSupplier.markSlotUsed(
-          new NexusSlotInfo("", "", taskQueue, options.getIdentity(), options.getBuildId()),
+          new NexusSlotInfo(
+              service, operation, taskQueue, options.getIdentity(), options.getBuildId()),
           task.getPermit());
-
-      Scope metricsScope = createMetricsScope(pollResponse);
 
       NexusTaskHandler.Result result = null;
       try {
-        result = handleNexus(task, metricsScope);
+        result = handleNexusTask(task, metricsScope);
       } finally {
         MDC.remove(LoggerTag.NEXUS_SERVICE);
         MDC.remove(LoggerTag.NEXUS_OPERATION);
@@ -254,10 +266,12 @@ final class NexusWorker implements SuspendableWorker {
 
     @Override
     public Throwable wrapFailure(NexusTask task, Throwable failure) {
-      return null;
+      PollNexusTaskQueueResponseOrBuilder response = task.getResponse();
+      return new RuntimeException(
+          "Failure processing nexus response: " + response.getRequest().toString(), failure);
     }
 
-    private NexusTaskHandler.Result handleNexus(NexusTask task, Scope metricsScope) {
+    private NexusTaskHandler.Result handleNexusTask(NexusTask task, Scope metricsScope) {
       PollNexusTaskQueueResponseOrBuilder pollResponse = task.getResponse();
       ByteString taskToken = pollResponse.getTaskToken();
 
@@ -336,7 +350,7 @@ final class NexusWorker implements SuspendableWorker {
                       .respondNexusTaskFailed(request),
               replyGrpcRetryerOptions);
         } else {
-          throw new IllegalArgumentException("Either response or failure must be set");
+          throw new IllegalArgumentException("[BUG] Either response or failure must be set");
         }
       }
     }

@@ -39,11 +39,8 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
   private final DataConverter dataConverter;
   private final String namespace;
   private final String taskQueue;
-
   private final WorkflowClient client;
-
   private ServiceHandler serviceHandler;
-
   private final Map<String, ServiceImplInstance> serviceImplInstances =
       Collections.synchronizedMap(new HashMap<>());
 
