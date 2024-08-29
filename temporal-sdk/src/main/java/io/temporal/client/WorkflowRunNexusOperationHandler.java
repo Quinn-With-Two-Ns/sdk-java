@@ -21,7 +21,6 @@
 package io.temporal.client;
 
 import io.nexusrpc.OperationInfo;
-import io.nexusrpc.OperationNotFoundException;
 import io.nexusrpc.handler.*;
 import io.temporal.common.Experimental;
 import io.temporal.internal.nexus.CurrentNexusOperationContext;
@@ -99,8 +98,7 @@ public final class WorkflowRunNexusOperationHandler {
 
     @Override
     public void cancel(
-        OperationContext operationContext, OperationCancelDetails operationCancelDetails)
-        throws OperationNotFoundException {
+        OperationContext operationContext, OperationCancelDetails operationCancelDetails) {
       WorkflowClient client = CurrentNexusOperationContext.get().getWorkflowClient();
       client.newUntypedWorkflowStub(operationCancelDetails.getOperationId()).cancel();
     }

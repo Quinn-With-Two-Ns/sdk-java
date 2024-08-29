@@ -20,7 +20,7 @@
 
 package io.temporal.internal.nexus;
 
-import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.ByteString;
 import io.nexusrpc.Serializer;
 import io.temporal.api.common.v1.Payload;
 import io.temporal.common.converter.DataConverter;
@@ -39,19 +39,15 @@ class PayloadSerializer implements Serializer {
   public Content serialize(@Nullable Object o) {
     Optional<Payload> payload = dataConverter.toPayload(o);
     Content.Builder content = Content.newBuilder();
-    if (payload.isPresent()) {
-      content.setData(payload.get().toByteArray());
-    }
+    content.setData(payload.get().getData().toByteArray());
+    payload.get().getMetadataMap().forEach((k, v) -> content.putHeader(k, v.toStringUtf8()));
     return content.build();
   }
 
   @Override
   public @Nullable Object deserialize(Content content, Type type) {
-    try {
-      Payload payload = Payload.parseFrom(content.getData());
-      return dataConverter.fromPayload(payload, type.getClass(), type);
-    } catch (InvalidProtocolBufferException e) {
-      throw new RuntimeException(e);
-    }
+    Payload.Builder payload = Payload.newBuilder().setData(ByteString.copyFrom(content.getData()));
+    content.getHeaders().forEach((k, v) -> payload.putMetadata(k, ByteString.copyFromUtf8(v)));
+    return dataConverter.fromPayload(payload.build(), type.getClass(), type);
   }
 }
