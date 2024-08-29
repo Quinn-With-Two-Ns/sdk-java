@@ -18,22 +18,18 @@
  * limitations under the License.
  */
 
-package io.temporal.workflow.shared.nexus;
+package io.temporal.nexus;
 
-import io.nexusrpc.Operation;
-import io.nexusrpc.Service;
+import io.nexusrpc.OperationUnsuccessfulException;
+import io.nexusrpc.handler.OperationContext;
+import io.nexusrpc.handler.OperationStartDetails;
+import io.temporal.client.WorkflowClient;
+import javax.annotation.Nullable;
 
-@Service
-public interface TestNexusService {
-  @Operation
-  String sayHello1(String name);
-
-  @Operation
-  String runWorkflow(String name);
-
-  @Operation
-  Void sleep(Long sleepDurationMs);
-
-  @Operation
-  String fail(String name);
+@FunctionalInterface
+public interface SynchronousOperationFunction<T, R> {
+  @Nullable
+  R apply(
+      OperationContext ctx, OperationStartDetails details, WorkflowClient client, @Nullable T input)
+      throws OperationUnsuccessfulException;
 }

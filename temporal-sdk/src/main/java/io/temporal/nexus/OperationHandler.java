@@ -18,22 +18,24 @@
  * limitations under the License.
  */
 
-package io.temporal.workflow.shared.nexus;
+package io.temporal.nexus;
 
-import io.nexusrpc.Operation;
-import io.nexusrpc.Service;
+import io.nexusrpc.handler.*;
+import io.temporal.common.Experimental;
+import io.temporal.internal.nexus.CurrentNexusOperationContext;
+import io.temporal.internal.nexus.NexusOperationContextImpl;
 
-@Service
-public interface TestNexusService {
-  @Operation
-  String sayHello1(String name);
+@Experimental
+public final class OperationHandler {
+  public static <T, R> io.nexusrpc.handler.OperationHandler<T, R> sync(
+      SynchronousOperationFunction<T, R> func) {
+    return io.nexusrpc.handler.OperationHandler.sync(
+        (OperationContext ctx, OperationStartDetails details, T input) -> {
+          NexusOperationContextImpl nexusCtx = CurrentNexusOperationContext.get();
+          return func.apply(ctx, details, nexusCtx.getWorkflowClient(), input);
+        });
+  }
 
-  @Operation
-  String runWorkflow(String name);
-
-  @Operation
-  Void sleep(Long sleepDurationMs);
-
-  @Operation
-  String fail(String name);
+  /** Prohibits instantiation. */
+  private OperationHandler() {}
 }

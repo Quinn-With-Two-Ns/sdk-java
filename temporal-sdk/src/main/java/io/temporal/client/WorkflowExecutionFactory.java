@@ -18,22 +18,25 @@
  * limitations under the License.
  */
 
-package io.temporal.workflow.shared.nexus;
+package io.temporal.client;
 
-import io.nexusrpc.Operation;
-import io.nexusrpc.Service;
+import io.nexusrpc.handler.OperationContext;
+import io.nexusrpc.handler.OperationStartDetails;
+import io.temporal.api.common.v1.WorkflowExecution;
+import javax.annotation.Nullable;
 
-@Service
-public interface TestNexusService {
-  @Operation
-  String sayHello1(String name);
-
-  @Operation
-  String runWorkflow(String name);
-
-  @Operation
-  Void sleep(Long sleepDurationMs);
-
-  @Operation
-  String fail(String name);
+/**
+ * Function interface for {@link
+ * WorkflowRunNexusOperationHandler#fromWorkflowExecution(WorkflowExecutionFactory)} representing
+ * the workflow execution to associate with each operation call.
+ */
+@FunctionalInterface
+public interface WorkflowExecutionFactory<T> {
+  /**
+   * Invoked every operation start call and expected to return a workflow execution to a workflow
+   * started through the provided {@link WorkflowClient}.
+   */
+  @Nullable
+  WorkflowExecution apply(
+      OperationContext context, OperationStartDetails details, WorkflowClient client, T input);
 }

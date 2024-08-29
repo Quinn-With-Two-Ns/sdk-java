@@ -23,12 +23,13 @@ package io.temporal.workflow.nexus;
 import io.temporal.testing.internal.SDKTestWorkflowRule;
 import io.temporal.workflow.*;
 import io.temporal.workflow.shared.TestWorkflows;
-import io.temporal.workflow.shared.nexus.TestNexusService;
 import io.temporal.workflow.shared.nexus.TestNexusServiceImpl;
 import java.time.Duration;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
 
-public class NexusSyncOperationTest extends BaseNexusTest {
+public class NexusUntypedOperationTest extends BaseNexusTest {
   @Rule
   public SDKTestWorkflowRule testWorkflowRule =
       SDKTestWorkflowRule.newBuilder()
@@ -43,7 +44,7 @@ public class NexusSyncOperationTest extends BaseNexusTest {
   }
 
   @Test
-  public void syncOperation() {
+  public void untypedOperationStub() {
     TestWorkflows.TestWorkflow1 workflowStub =
         testWorkflowRule.newWorkflowStubTimeoutOptions(TestWorkflows.TestWorkflow1.class);
     String result = workflowStub.execute(testWorkflowRule.getTaskQueue());
@@ -58,10 +59,22 @@ public class NexusSyncOperationTest extends BaseNexusTest {
           NexusOperationOptions.newBuilder()
               .setScheduleToCloseTimeout(Duration.ofSeconds(5))
               .build();
-      TestNexusService testNexusService =
-          nexusClient.newServiceStub(TestNexusService.class, options);
-      String result = testNexusService.sayHello1(name);
-      return result;
+      String syncResult =
+          nexusClient
+              .newUntypedNexusOperationStub("TestNexusService", "sayHello1", options)
+              .execute(String.class, name);
+
+      Promise<Void> asyncResult =
+          nexusClient
+              .newUntypedNexusOperationStub("TestNexusService", "sleep", options)
+              .executeAsync(Void.class, 100);
+      asyncResult.get();
+
+      NexusOperationStub stub =
+          nexusClient.newUntypedNexusOperationStub("TestNexusService", "sleep", options);
+      Promise<Void> longAsyncResult = stub.executeAsync(Void.class, 100000);
+      stub.getExecution().get();
+      return syncResult;
     }
   }
 }

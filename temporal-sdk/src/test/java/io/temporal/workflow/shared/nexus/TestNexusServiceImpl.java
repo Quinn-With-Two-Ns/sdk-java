@@ -51,6 +51,20 @@ public class TestNexusServiceImpl {
   }
 
   @OperationImpl
+  public OperationHandler<Long, Void> sleep() {
+    // Implemented via handler
+    return WorkflowRunNexusOperationHandler.fromWorkflowExecution(
+        (OperationContext ctx, OperationStartDetails o, WorkflowClient c, Long input) -> {
+          TestWorkflows.TestWorkflowLongArg workflow =
+              c.newWorkflowStub(
+                  TestWorkflows.TestWorkflowLongArg.class,
+                  WorkflowOptions.newBuilder().setWorkflowId(o.getRequestId()).build());
+
+          return WorkflowClient.start(workflow::execute, input);
+        });
+  }
+
+  @OperationImpl
   public OperationHandler<String, String> fail() {
     return OperationHandler.sync(
         (ctx, details, name) -> {

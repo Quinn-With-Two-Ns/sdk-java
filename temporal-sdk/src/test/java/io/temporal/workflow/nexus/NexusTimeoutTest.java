@@ -21,37 +21,42 @@
 package io.temporal.workflow.nexus;
 
 import io.temporal.client.WorkflowFailedException;
-import io.temporal.failure.ApplicationFailure;
 import io.temporal.failure.NexusOperationFailure;
+import io.temporal.failure.TimeoutFailure;
 import io.temporal.testing.internal.SDKTestWorkflowRule;
-import io.temporal.workflow.*;
+import io.temporal.workflow.NexusClient;
+import io.temporal.workflow.NexusOperationOptions;
+import io.temporal.workflow.Workflow;
+import io.temporal.workflow.shared.TestWorkflows;
 import io.temporal.workflow.shared.TestWorkflows.TestWorkflow1;
 import io.temporal.workflow.shared.nexus.TestNexusService;
 import io.temporal.workflow.shared.nexus.TestNexusServiceImpl;
 import java.time.Duration;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
 
-public class NexusFailTest extends BaseNexusTest {
+public class NexusTimeoutTest extends BaseNexusTest {
 
   @Rule
   public SDKTestWorkflowRule testWorkflowRule =
       SDKTestWorkflowRule.newBuilder()
           .setUseExternalService(true)
-          .setWorkflowTypes(TestNexus.class)
+          .setWorkflowTypes(TestNexus.class, TestWorkflowLongArgImpl.class)
           .setNexusServiceImplementation(new TestNexusServiceImpl())
           .build();
 
   @Test
-  public void failSyncOperation() {
+  public void timeoutOperation() {
     TestWorkflow1 workflowStub =
         testWorkflowRule.newWorkflowStubTimeoutOptions(TestWorkflow1.class);
     WorkflowFailedException exception =
         Assert.assertThrows(WorkflowFailedException.class, () -> workflowStub.execute(""));
     Assert.assertTrue(exception.getCause() instanceof NexusOperationFailure);
     NexusOperationFailure nexusFailure = (NexusOperationFailure) exception.getCause();
-    Assert.assertTrue(nexusFailure.getCause() instanceof ApplicationFailure);
-    ApplicationFailure applicationFailure = (ApplicationFailure) nexusFailure.getCause();
-    Assert.assertEquals("failed to say hello", applicationFailure.getOriginalMessage());
+    Assert.assertTrue(nexusFailure.getCause() instanceof TimeoutFailure);
+    TimeoutFailure timeoutFailure = (TimeoutFailure) nexusFailure.getCause();
+    Assert.assertEquals("operation timed out", timeoutFailure.getOriginalMessage());
   }
 
   @Override
@@ -65,13 +70,21 @@ public class NexusFailTest extends BaseNexusTest {
       NexusClient nexusClient = Workflow.newNexusClient(getEndpointName());
       NexusOperationOptions options =
           NexusOperationOptions.newBuilder()
-              .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+              .setScheduleToCloseTimeout(Duration.ofSeconds(1))
               .build();
       TestNexusService testNexusService =
           nexusClient.newServiceStub(TestNexusService.class, options);
-      testNexusService.fail(Workflow.getInfo().getWorkflowId());
+      // Sleep for 5 seconds to trigger timeout
+      testNexusService.sleep(5_000L);
       // Workflow will not reach this point
       return "fail";
+    }
+  }
+
+  public static class TestWorkflowLongArgImpl implements TestWorkflows.TestWorkflowLongArg {
+    @Override
+    public void execute(long arg) {
+      Workflow.sleep(arg);
     }
   }
 }

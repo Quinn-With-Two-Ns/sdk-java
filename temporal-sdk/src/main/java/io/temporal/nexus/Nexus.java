@@ -36,8 +36,8 @@ public final class Nexus {
   }
 
   /**
-   * Use this to rethrow a checked exception from an Nexus Operation instead of adding the
-   * exception to a method signature.
+   * Use this to rethrow a checked exception from a Nexus Operation instead of adding the exception
+   * to a method signature.
    *
    * @return Never returns; always throws. Throws original exception if e is {@link
    *     RuntimeException} or {@link Error}.

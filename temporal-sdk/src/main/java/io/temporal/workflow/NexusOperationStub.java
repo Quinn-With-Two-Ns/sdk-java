@@ -69,7 +69,26 @@ public interface NexusOperationStub {
    */
   <R> R execute(Class<R> resultClass, Type resultType, Object arg);
 
+  /**
+   * Executes a Nexus Operation asynchronously, returning a promise that will be resolved when the
+   * operation completes.
+   *
+   * @param resultClass class of the operation result
+   * @param <R> type of the operation result
+   * @return operation result
+   * @throws io.temporal.failure.NexusOperationFailure if the operation fails
+   */
   <R> Promise<R> executeAsync(Class<R> resultClass, Object arg);
 
+  /**
+   * Executes a Nexus Operation asynchronously, returning a promise that will be resolved when the
+   * operation completes.
+   *
+   * @param resultClass class of the operation result
+   * @param resultType type of the operation result. Differs from resultClass for generic types.
+   * @param <R> type of the operation result
+   * @return operation result
+   * @throws io.temporal.failure.NexusOperationFailure if the operation fails
+   */
   <R> Promise<R> executeAsync(Class<R> resultClass, Type resultType, Object arg);
 }
