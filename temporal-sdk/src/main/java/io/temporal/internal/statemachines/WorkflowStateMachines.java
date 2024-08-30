@@ -898,8 +898,7 @@ public final class WorkflowStateMachines {
         requestCancelNexusOperation(
             RequestCancelNexusOperationCommandAttributes.newBuilder()
                 .setScheduledEventId(operation.getInitialCommandEventId())
-                .build(),
-            (v) -> {});
+                .build());
       }
     };
   }
@@ -937,14 +936,10 @@ public final class WorkflowStateMachines {
 
   /**
    * @param attributes attributes to use to cancel a nexus operation
-   * @param completionCallback one of ExternalWorkflowExecutionCancelRequestedEvent,
    */
-  public void requestCancelNexusOperation(
-      RequestCancelNexusOperationCommandAttributes attributes,
-      Functions.Proc1<Void> completionCallback) {
+  public void requestCancelNexusOperation(RequestCancelNexusOperationCommandAttributes attributes) {
     checkEventLoopExecuting();
-    CancelNexusOperationStateMachine.newInstance(
-        attributes, completionCallback, commandSink, stateMachineSink);
+    CancelNexusOperationStateMachine.newInstance(attributes, commandSink, stateMachineSink);
   }
 
   public void upsertSearchAttributes(SearchAttributes attributes) {

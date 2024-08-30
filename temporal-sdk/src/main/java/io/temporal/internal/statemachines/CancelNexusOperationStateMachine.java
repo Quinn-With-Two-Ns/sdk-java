@@ -26,6 +26,7 @@ import io.temporal.api.enums.v1.CommandType;
 import io.temporal.api.enums.v1.EventType;
 import io.temporal.workflow.Functions;
 
+/** CancelNexusOperationStateMachine manges a request to cancel a nexus operation. */
 final class CancelNexusOperationStateMachine
     extends EntityStateMachineInitialCommand<
         CancelNexusOperationStateMachine.State,
@@ -34,30 +35,23 @@ final class CancelNexusOperationStateMachine
 
   private final RequestCancelNexusOperationCommandAttributes requestCancelNexusAttributes;
 
-  private final Functions.Proc1<Void> completionCallback;
-
   /**
    * @param attributes attributes to use to cancel a nexus operation
-   * @param completionCallback called on NexusOperationCancelRequested
    * @param commandSink sink to send commands
    */
   public static void newInstance(
       RequestCancelNexusOperationCommandAttributes attributes,
-      Functions.Proc1<Void> completionCallback,
       Functions.Proc1<CancellableCommand> commandSink,
       Functions.Proc1<StateMachine> stateMachineSink) {
-    new CancelNexusOperationStateMachine(
-        attributes, completionCallback, commandSink, stateMachineSink);
+    new CancelNexusOperationStateMachine(attributes, commandSink, stateMachineSink);
   }
 
   private CancelNexusOperationStateMachine(
       RequestCancelNexusOperationCommandAttributes attributes,
-      Functions.Proc1<Void> completionCallback,
       Functions.Proc1<CancellableCommand> commandSink,
       Functions.Proc1<StateMachine> stateMachineSink) {
     super(STATE_MACHINE_DEFINITION, commandSink, stateMachineSink);
     this.requestCancelNexusAttributes = attributes;
-    this.completionCallback = completionCallback;
     explicitEvent(ExplicitEvent.SCHEDULE);
   }
 
@@ -75,7 +69,7 @@ final class CancelNexusOperationStateMachine
       STATE_MACHINE_DEFINITION =
           StateMachineDefinition
               .<State, ExplicitEvent, CancelNexusOperationStateMachine>newInstance(
-                  "CancelExternal", State.CREATED, State.CANCEL_REQUESTED)
+                  "CancelNexusOperation", State.CREATED, State.CANCEL_REQUESTED)
               .add(
                   State.CREATED,
                   ExplicitEvent.SCHEDULE,
@@ -101,6 +95,5 @@ final class CancelNexusOperationStateMachine
 
   private void notifyCompleted() {
     setInitialCommandEventId();
-    completionCallback.apply(null);
   }
 }

@@ -80,7 +80,7 @@ public class CancelNexusOperationStateMachineTest {
                 .setScheduledEventId(4)
                 .build();
         builder
-            .<Void>add1((v, c) -> stateMachines.requestCancelNexusOperation(attributes, c))
+            .add((v) -> stateMachines.requestCancelNexusOperation(attributes))
             .<Optional<Payloads>>add1((r, c) -> stateMachines.completeWorkflow(Optional.empty()));
       }
     }

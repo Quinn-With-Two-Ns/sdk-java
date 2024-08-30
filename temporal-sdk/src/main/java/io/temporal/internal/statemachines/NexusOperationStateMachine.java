@@ -32,7 +32,12 @@ import io.temporal.api.history.v1.*;
 import io.temporal.workflow.Functions;
 import java.util.Optional;
 
-public class NexusOperationStateMachine
+/**
+ * NexusOperationStateMachine manages a nexus operation.
+ *
+ * <p>Note: A cancellation request is managed by {@link CancelNexusOperationStateMachine}
+ */
+final class NexusOperationStateMachine
     extends EntityStateMachineInitialCommand<
         NexusOperationStateMachine.State,
         NexusOperationStateMachine.ExplicitEvent,
@@ -84,7 +89,7 @@ public class NexusOperationStateMachine
               .<NexusOperationStateMachine.State, NexusOperationStateMachine.ExplicitEvent,
                   NexusOperationStateMachine>
                   newInstance(
-                      "Nexus",
+                      "NexusOperation",
                       State.CREATED,
                       State.COMPLETED,
                       State.FAILED,
