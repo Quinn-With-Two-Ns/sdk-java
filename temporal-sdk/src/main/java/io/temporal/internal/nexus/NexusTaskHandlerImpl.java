@@ -83,7 +83,7 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
     OperationMethodCanceller canceller = new OperationMethodCanceller();
     ctx.setMethodCanceller(canceller);
 
-    ScheduledFuture timeoutTask = null;
+    ScheduledFuture<?> timeoutTask = null;
     try {
       String timeoutString = headers.get("Request-Timeout");
       if (timeoutString != null) {
