@@ -20,7 +20,10 @@
 
 package io.temporal.internal.nexus;
 
-public class CurrentNexusOperationContext {
+/**
+ * Thread local store of the context object passed to a nexus operation implementation. Not to be used directly.
+ */
+public final class CurrentNexusOperationContext {
   private static final ThreadLocal<NexusOperationContextImpl> CURRENT = new ThreadLocal<>();
 
   public static NexusOperationContextImpl get() {
@@ -46,4 +49,6 @@ public class CurrentNexusOperationContext {
   public static void unset() {
     CURRENT.set(null);
   }
+
+  private CurrentNexusOperationContext() {}
 }
