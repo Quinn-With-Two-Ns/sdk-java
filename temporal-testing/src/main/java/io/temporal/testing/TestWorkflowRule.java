@@ -29,6 +29,7 @@ import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowClientOptions;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.client.WorkflowStub;
+import io.temporal.common.Experimental;
 import io.temporal.common.SearchAttributeKey;
 import io.temporal.common.interceptors.WorkerInterceptor;
 import io.temporal.internal.common.env.DebugModeUtils;
@@ -240,6 +241,7 @@ public class TestWorkflowRule implements TestRule {
       return this;
     }
 
+    @Experimental
     public Builder setNexusServiceImplementation(Object... nexusServiceImplementations) {
       this.nexusServiceImplementations = nexusServiceImplementations;
       return this;

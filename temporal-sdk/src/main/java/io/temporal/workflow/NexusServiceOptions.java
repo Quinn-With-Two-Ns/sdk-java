@@ -24,6 +24,11 @@ import io.temporal.common.Experimental;
 import java.util.Collections;
 import java.util.Map;
 
+/**
+ * Options for configuring a NexusService.
+ *
+ * <p>Use {@link NexusServiceOptions#newBuilder()} to construct an instance.
+ */
 @Experimental
 public final class NexusServiceOptions {
 
@@ -50,16 +55,25 @@ public final class NexusServiceOptions {
     private NexusOperationOptions operationOptions;
     private Map<String, NexusOperationOptions> operationMethodOptions;
 
+    /**
+     * Sets the base operation options for the NexusService.
+     */
     public NexusServiceOptions.Builder setOperationOptions(NexusOperationOptions operationOptions) {
       this.operationOptions = operationOptions;
       return this;
     }
 
+    /**
+     * Sets the endpoint for the NexusService.
+     */
     public NexusServiceOptions.Builder setEndpoint(String endpoint) {
       this.endpoint = endpoint;
       return this;
     }
 
+    /**
+     * Sets operation specific options by the operation name. Merged with the base operation options.
+     */
     public NexusServiceOptions.Builder setOperationMethodOptions(
         Map<String, NexusOperationOptions> operationMethodOptions) {
       this.operationMethodOptions = operationMethodOptions;
