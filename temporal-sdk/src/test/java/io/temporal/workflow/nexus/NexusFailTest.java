@@ -62,13 +62,18 @@ public class NexusFailTest extends BaseNexusTest {
   public static class TestNexus implements TestWorkflow1 {
     @Override
     public String execute(String endpoint) {
-      NexusClient nexusClient = Workflow.newNexusClient(getEndpointName());
       NexusOperationOptions options =
           NexusOperationOptions.newBuilder()
               .setScheduleToCloseTimeout(Duration.ofSeconds(5))
               .build();
+
+      NexusServiceOptions serviceOptions =
+          NexusServiceOptions.newBuilder()
+              .setEndpoint(getEndpointName())
+              .setOperationOptions(options)
+              .build();
       TestNexusService testNexusService =
-          nexusClient.newServiceStub(TestNexusService.class, options);
+          Workflow.newNexusServiceStub(TestNexusService.class, serviceOptions);
       testNexusService.fail(Workflow.getInfo().getWorkflowId());
       // Workflow will not reach this point
       return "fail";

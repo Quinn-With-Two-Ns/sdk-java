@@ -1293,13 +1293,52 @@ public final class Workflow {
   }
 
   /**
-   * Creates a NexusClient from an endpoint name.
+   * Creates a service stub that can be used to start nexus operations on the given service
+   * interface.
    *
-   * @param endpoint endpoint name this client uses
+   * @param service interface that given service implements.
    */
   @Experimental
-  public static NexusClient newNexusClient(String endpoint) {
-    return WorkflowInternal.newNexusClient(endpoint);
+  public static <T> T newNexusServiceStub(Class<T> service) {
+    return WorkflowInternal.newNexusServiceStub(service, null);
+  }
+
+  /**
+   * Creates a service stub that can be used to start nexus operations on the given service
+   * interface.
+   *
+   * @param service interface that given service implements.
+   * @param options options passed to the nexus service.
+   */
+  @Experimental
+  public static <T> T newNexusServiceStub(Class<T> service, NexusServiceOptions options) {
+    return WorkflowInternal.newNexusServiceStub(service, options);
+  }
+
+  /**
+   * Creates untyped nexus service stub that can be used to execute Nexus operations.
+   *
+   * @param service name of the service the operation is part of.
+   * @param options options passed to the nexus service.
+   */
+  @Experimental
+  public static NexusServiceStub newUntypedNexusServiceStub(
+      String service, NexusServiceOptions options) {
+    return WorkflowInternal.newUntypedNexusServiceStub(service, options);
+  }
+
+  /**
+   * Start a nexus operation.
+   *
+   * @param operation The only supported value is method reference to a proxy created through {@link
+   *     #newNexusServiceStub(Class)}.
+   * @param arg operation argument
+   * @return OperationHandle a handle to the operation.
+   */
+  @Experimental
+  public static <T, R> OperationHandle<T> startNexusOperation(
+      Functions.Func1<T, R> operation, T arg) {
+    return WorkflowInternal.startNexusOperation(operation, arg);
   }
 
   /** Prohibit instantiation. */

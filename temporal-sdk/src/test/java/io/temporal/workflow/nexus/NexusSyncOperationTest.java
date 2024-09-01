@@ -53,13 +53,18 @@ public class NexusSyncOperationTest extends BaseNexusTest {
   public static class TestNexus implements TestWorkflows.TestWorkflow1 {
     @Override
     public String execute(String name) {
-      NexusClient nexusClient = Workflow.newNexusClient(getEndpointName());
       NexusOperationOptions options =
           NexusOperationOptions.newBuilder()
               .setScheduleToCloseTimeout(Duration.ofSeconds(5))
               .build();
+
+      NexusServiceOptions serviceOptions =
+          NexusServiceOptions.newBuilder()
+              .setEndpoint(getEndpointName())
+              .setOperationOptions(options)
+              .build();
       TestNexusService testNexusService =
-          nexusClient.newServiceStub(TestNexusService.class, options);
+          Workflow.newNexusServiceStub(TestNexusService.class, serviceOptions);
       String result = testNexusService.sayHello1(name);
       return result;
     }

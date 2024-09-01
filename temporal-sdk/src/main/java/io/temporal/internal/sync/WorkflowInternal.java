@@ -27,6 +27,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.uber.m3.tally.Scope;
+import io.nexusrpc.ServiceDefinition;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.activity.LocalActivityOptions;
 import io.temporal.api.common.v1.Payload;
@@ -758,11 +759,6 @@ public final class WorkflowInternal {
     return getRootWorkflowContext().isEveryHandlerFinished();
   }
 
-  public static NexusClient newNexusClient(String endpoint) {
-    return new NexusClientImpl(
-        endpoint, getWorkflowOutboundInterceptor(), WorkflowInternal::assertNotReadOnly);
-  }
-
   static WorkflowOutboundCallsInterceptor getWorkflowOutboundInterceptor() {
     return getRootWorkflowContext().getWorkflowOutboundInterceptor();
   }
@@ -789,6 +785,42 @@ public final class WorkflowInternal {
 
   private static WorkflowThread getWorkflowThread() {
     return DeterministicRunnerImpl.currentThreadInternal();
+  }
+
+  public static <T> T newNexusServiceStub(Class<T> serviceInterface, NexusServiceOptions options) {
+    SyncWorkflowContext context = getRootWorkflowContext();
+    NexusServiceOptions baseOptions =
+        (options == null) ? context.getDefaultNexusServiceOptions() : options;
+
+    @Nonnull
+    Map<String, NexusServiceOptions> predefinedNexusServiceOptions =
+        context.getNexusServiceOptions();
+
+    ServiceDefinition serviceDef = ServiceDefinition.fromClass(serviceInterface);
+    NexusServiceOptions mergedOptions =
+        NexusServiceOptions.newBuilder(baseOptions)
+            .mergeNexusServiceOptions(predefinedNexusServiceOptions.get(serviceDef.getName()))
+            .build();
+    return (T)
+        Proxy.newProxyInstance(
+            serviceInterface.getClassLoader(),
+            new Class<?>[] {serviceInterface, StubMarker.class, AsyncInternal.AsyncMarker.class},
+            new NexusServiceInvocationHandler(
+                serviceDef,
+                mergedOptions,
+                getWorkflowOutboundInterceptor(),
+                WorkflowInternal::assertNotReadOnly));
+  }
+
+  public static NexusServiceStub newUntypedNexusServiceStub(
+      String service, NexusServiceOptions options) {
+    return new NexusServiceStubImpl(
+        service, options, getWorkflowOutboundInterceptor(), WorkflowInternal::assertNotReadOnly);
+  }
+
+  public static <T, R> OperationHandle<T> startNexusOperation(
+      Functions.Func1<T, R> operation, T arg) {
+    return null;
   }
 
   /** Prohibit instantiation */

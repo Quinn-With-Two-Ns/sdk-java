@@ -54,13 +54,17 @@ public class NexusWorkflowTest extends BaseNexusTest {
   public static class TestNexus implements TestWorkflows.TestWorkflow2 {
     @Override
     public String execute(String taskQueue, String arg2) {
-      NexusClient nexusClient = Workflow.newNexusClient(getEndpointName());
       NexusOperationOptions options =
           NexusOperationOptions.newBuilder()
               .setScheduleToCloseTimeout(Duration.ofSeconds(10))
               .build();
       TestNexusService testNexusService =
-          nexusClient.newServiceStub(TestNexusService.class, options);
+          Workflow.newNexusServiceStub(
+              TestNexusService.class,
+              NexusServiceOptions.newBuilder()
+                  .setEndpoint(getEndpointName())
+                  .setOperationOptions(options)
+                  .build());
       Promise<String> asyncOp = Async.function(testNexusService::runWorkflow, arg2);
       String syncOp = testNexusService.runWorkflow(arg2);
       return syncOp + asyncOp.get();

@@ -24,8 +24,8 @@ import io.temporal.client.WorkflowFailedException;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.failure.NexusOperationFailure;
 import io.temporal.testing.internal.SDKTestWorkflowRule;
-import io.temporal.workflow.NexusClient;
 import io.temporal.workflow.NexusOperationOptions;
+import io.temporal.workflow.NexusServiceOptions;
 import io.temporal.workflow.Workflow;
 import io.temporal.workflow.shared.TestWorkflows.TestWorkflow1;
 import io.temporal.workflow.shared.nexus.TestNexusService;
@@ -66,13 +66,18 @@ public class NexusCancelTest extends BaseNexusTest {
   public static class TestNexus implements TestWorkflow1 {
     @Override
     public String execute(String endpoint) {
-      NexusClient nexusClient = Workflow.newNexusClient(getEndpointName());
       NexusOperationOptions options =
           NexusOperationOptions.newBuilder()
               .setScheduleToCloseTimeout(Duration.ofSeconds(5))
               .build();
+
+      NexusServiceOptions serviceOptions =
+          NexusServiceOptions.newBuilder()
+              .setEndpoint(getEndpointName())
+              .setOperationOptions(options)
+              .build();
       TestNexusService testNexusService =
-          nexusClient.newServiceStub(TestNexusService.class, options);
+          Workflow.newNexusServiceStub(TestNexusService.class, serviceOptions);
       testNexusService.fail(Workflow.getInfo().getWorkflowId());
       // Workflow will not reach this point
       return "fail";

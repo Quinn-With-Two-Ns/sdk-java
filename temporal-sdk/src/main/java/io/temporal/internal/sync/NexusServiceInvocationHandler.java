@@ -23,45 +23,36 @@ package io.temporal.internal.sync;
 import io.nexusrpc.Operation;
 import io.nexusrpc.ServiceDefinition;
 import io.temporal.common.interceptors.WorkflowOutboundCallsInterceptor;
-import io.temporal.workflow.Functions;
-import io.temporal.workflow.NexusClient;
-import io.temporal.workflow.NexusOperationOptions;
+import io.temporal.workflow.*;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 
 public class NexusServiceInvocationHandler implements InvocationHandler {
+  private final NexusServiceStub stub;
+
   private final ServiceDefinition serviceDef;
-  private final WorkflowOutboundCallsInterceptor outboundCallsInterceptor;
-  private final Functions.Proc1<String> assertReadOnly;
-  private final NexusClient client;
-  private final NexusOperationOptions operationOptions;
-  Class<?> serviceInterface;
 
   NexusServiceInvocationHandler(
-      NexusClient client,
-      Class<?> serviceInterface,
-      NexusOperationOptions operationOptions,
+      ServiceDefinition serviceDef,
+      NexusServiceOptions options,
       WorkflowOutboundCallsInterceptor outboundCallsInterceptor,
       Functions.Proc1<String> assertReadOnly) {
-    this.client = client;
-    this.serviceInterface = serviceInterface;
-    this.serviceDef = ServiceDefinition.fromClass(serviceInterface);
-    this.operationOptions = operationOptions;
-    this.outboundCallsInterceptor = outboundCallsInterceptor;
-    this.assertReadOnly = assertReadOnly;
+    this.serviceDef = serviceDef;
+    this.stub =
+        new NexusServiceStubImpl(
+            serviceDef.getName(), options, outboundCallsInterceptor, assertReadOnly) {};
   }
 
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    if (method.getName().equals(StubMarker.GET_UNTYPED_STUB_METHOD)) {
+      return stub;
+    }
+
     Operation opAnnotation = method.getAnnotation(Operation.class);
     String opName = !opAnnotation.name().equals("") ? opAnnotation.name() : method.getName();
-    return new NexusOperationStubImpl(
-            client,
-            this.serviceDef.getName(),
-            opName,
-            operationOptions,
-            outboundCallsInterceptor,
-            assertReadOnly)
-        .execute(method.getReturnType(), method.getGenericReturnType(), args[0]);
+    // TODO add getValueOrDefault?
+    return this.stub.execute(
+        opName, method.getReturnType(), method.getGenericReturnType(), args[0]);
   }
 }

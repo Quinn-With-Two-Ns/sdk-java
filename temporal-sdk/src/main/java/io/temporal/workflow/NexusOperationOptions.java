@@ -65,6 +65,18 @@ public final class NexusOperationOptions {
     public NexusOperationOptions build() {
       return new NexusOperationOptions(scheduleToCloseTimeout);
     }
+
+    public NexusOperationOptions.Builder mergeNexusOperationOptions(
+        NexusOperationOptions override) {
+      if (override == null) {
+        return this;
+      }
+      this.scheduleToCloseTimeout =
+          (override.scheduleToCloseTimeout == null)
+              ? this.scheduleToCloseTimeout
+              : override.scheduleToCloseTimeout;
+      return this;
+    }
   }
 
   private NexusOperationOptions(Duration startToCloseTimeout) {

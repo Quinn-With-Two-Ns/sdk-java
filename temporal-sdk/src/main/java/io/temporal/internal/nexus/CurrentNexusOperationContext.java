@@ -21,7 +21,8 @@
 package io.temporal.internal.nexus;
 
 /**
- * Thread local store of the context object passed to a nexus operation implementation. Not to be used directly.
+ * Thread local store of the context object passed to a nexus operation implementation. Not to be
+ * used directly.
  */
 public final class CurrentNexusOperationContext {
   private static final ThreadLocal<NexusOperationContextImpl> CURRENT = new ThreadLocal<>();

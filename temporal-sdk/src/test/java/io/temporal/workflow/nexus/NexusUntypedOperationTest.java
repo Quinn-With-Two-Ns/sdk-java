@@ -54,26 +54,22 @@ public class NexusUntypedOperationTest extends BaseNexusTest {
   public static class TestNexus implements TestWorkflows.TestWorkflow1 {
     @Override
     public String execute(String name) {
-      NexusClient nexusClient = Workflow.newNexusClient(getEndpointName());
       NexusOperationOptions options =
           NexusOperationOptions.newBuilder()
               .setScheduleToCloseTimeout(Duration.ofSeconds(5))
               .build();
-      String syncResult =
-          nexusClient
-              .newUntypedNexusOperationStub("TestNexusService", "sayHello1", options)
-              .execute(String.class, name);
+      NexusServiceOptions serviceOptions =
+          NexusServiceOptions.newBuilder()
+              .setEndpoint(getEndpointName())
+              .setOperationOptions(options)
+              .build();
+      NexusServiceStub serviceStub =
+          Workflow.newUntypedNexusServiceStub("TestNexusService", serviceOptions);
+      String syncResult = serviceStub.execute("sayHello1", String.class, name);
 
-      Promise<Void> asyncResult =
-          nexusClient
-              .newUntypedNexusOperationStub("TestNexusService", "sleep", options)
-              .executeAsync(Void.class, 100);
+      Promise<Void> asyncResult = serviceStub.executeAsync("sleep", Void.class, 100);
       asyncResult.get();
 
-      NexusOperationStub stub =
-          nexusClient.newUntypedNexusOperationStub("TestNexusService", "sleep", options);
-      Promise<Void> longAsyncResult = stub.executeAsync(Void.class, 100000);
-      stub.getExecution().get();
       return syncResult;
     }
   }

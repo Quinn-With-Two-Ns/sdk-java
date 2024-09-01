@@ -24,8 +24,8 @@ import io.temporal.client.WorkflowFailedException;
 import io.temporal.failure.NexusOperationFailure;
 import io.temporal.failure.TimeoutFailure;
 import io.temporal.testing.internal.SDKTestWorkflowRule;
-import io.temporal.workflow.NexusClient;
 import io.temporal.workflow.NexusOperationOptions;
+import io.temporal.workflow.NexusServiceOptions;
 import io.temporal.workflow.Workflow;
 import io.temporal.workflow.shared.TestWorkflows;
 import io.temporal.workflow.shared.TestWorkflows.TestWorkflow1;
@@ -67,13 +67,18 @@ public class NexusTimeoutTest extends BaseNexusTest {
   public static class TestNexus implements TestWorkflow1 {
     @Override
     public String execute(String endpoint) {
-      NexusClient nexusClient = Workflow.newNexusClient(getEndpointName());
       NexusOperationOptions options =
           NexusOperationOptions.newBuilder()
               .setScheduleToCloseTimeout(Duration.ofSeconds(1))
               .build();
+
+      NexusServiceOptions serviceOptions =
+          NexusServiceOptions.newBuilder()
+              .setEndpoint(getEndpointName())
+              .setOperationOptions(options)
+              .build();
       TestNexusService testNexusService =
-          nexusClient.newServiceStub(TestNexusService.class, options);
+          Workflow.newNexusServiceStub(TestNexusService.class, serviceOptions);
       // Sleep for 5 seconds to trigger timeout
       testNexusService.sleep(5_000L);
       // Workflow will not reach this point
