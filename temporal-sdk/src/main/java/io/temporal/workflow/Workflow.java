@@ -1293,7 +1293,7 @@ public final class Workflow {
   }
 
   /**
-   * Creates a service stub that can be used to start nexus operations on the given service
+   * Creates a Nexus service stub that can be used to start Nexus operations on the given service
    * interface.
    *
    * @param service interface that given service implements.
@@ -1304,7 +1304,7 @@ public final class Workflow {
   }
 
   /**
-   * Creates a service stub that can be used to start nexus operations on the given service
+   * Creates a Nexus service stub that can be used to start Nexus operations on the given service
    * interface.
    *
    * @param service interface that given service implements.

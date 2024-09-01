@@ -759,34 +759,6 @@ public final class WorkflowInternal {
     return getRootWorkflowContext().isEveryHandlerFinished();
   }
 
-  static WorkflowOutboundCallsInterceptor getWorkflowOutboundInterceptor() {
-    return getRootWorkflowContext().getWorkflowOutboundInterceptor();
-  }
-
-  static SyncWorkflowContext getRootWorkflowContext() {
-    return DeterministicRunnerImpl.currentThreadInternal().getWorkflowContext();
-  }
-
-  static boolean isReadOnly() {
-    return getRootWorkflowContext().isReadOnly();
-  }
-
-  static void assertNotReadOnly(String action) {
-    if (isReadOnly()) {
-      throw new ReadOnlyException(action);
-    }
-  }
-
-  static void assertNotInUpdateHandler(String message) {
-    if (getCurrentUpdateInfo().isPresent()) {
-      throw new UnsupportedContinueAsNewRequest(message);
-    }
-  }
-
-  private static WorkflowThread getWorkflowThread() {
-    return DeterministicRunnerImpl.currentThreadInternal();
-  }
-
   public static <T> T newNexusServiceStub(Class<T> serviceInterface, NexusServiceOptions options) {
     SyncWorkflowContext context = getRootWorkflowContext();
     NexusServiceOptions baseOptions =
@@ -821,6 +793,34 @@ public final class WorkflowInternal {
   public static <T, R> OperationHandle<T> startNexusOperation(
       Functions.Func1<T, R> operation, T arg) {
     return null;
+  }
+
+  static WorkflowOutboundCallsInterceptor getWorkflowOutboundInterceptor() {
+    return getRootWorkflowContext().getWorkflowOutboundInterceptor();
+  }
+
+  static SyncWorkflowContext getRootWorkflowContext() {
+    return DeterministicRunnerImpl.currentThreadInternal().getWorkflowContext();
+  }
+
+  static boolean isReadOnly() {
+    return getRootWorkflowContext().isReadOnly();
+  }
+
+  static void assertNotReadOnly(String action) {
+    if (isReadOnly()) {
+      throw new ReadOnlyException(action);
+    }
+  }
+
+  static void assertNotInUpdateHandler(String message) {
+    if (getCurrentUpdateInfo().isPresent()) {
+      throw new UnsupportedContinueAsNewRequest(message);
+    }
+  }
+
+  private static WorkflowThread getWorkflowThread() {
+    return DeterministicRunnerImpl.currentThreadInternal();
   }
 
   /** Prohibit instantiation */

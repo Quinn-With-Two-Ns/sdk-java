@@ -21,7 +21,6 @@
 package io.temporal.workflow;
 
 import io.temporal.common.Experimental;
-import io.temporal.internal.sync.StubMarker;
 import java.lang.reflect.Type;
 
 /**
@@ -33,22 +32,12 @@ import java.lang.reflect.Type;
 @Experimental
 public interface NexusServiceStub {
 
-  static <T> NexusServiceStub fromTyped(T typed) {
-    if (!(typed instanceof StubMarker)) {
-      throw new IllegalArgumentException(
-          "arguments must be created through Workflow.newNexusServiceStub");
-    }
-    @SuppressWarnings("unchecked")
-    StubMarker supplier = (StubMarker) typed;
-    return (NexusServiceStub) supplier.__getUntypedStub();
-  }
-
   /**
    * Executes an operation by its type name and arguments. Blocks until the operation completion.
    *
    * @param operationName name of the operation type to execute.
    * @param resultClass the expected return type of the operation.
-   * @param arg arguments of the operation.
+   * @param arg argument of the operation.
    * @param <R> return type.
    * @return an operation result.
    */
@@ -73,7 +62,7 @@ public interface NexusServiceStub {
    * @param operationName name of an operation type to execute.
    * @param resultClass the expected return type of the operation. Use Void.class for operations
    *     that return void type.
-   * @param arg arguments of the operation.
+   * @param arg argument of the operation.
    * @param <R> return type.
    * @return Promise to the operation result.
    */
@@ -87,7 +76,7 @@ public interface NexusServiceStub {
    *     that return void type.
    * @param resultType the expected return type of the nexus operation. Differs from resultClass for
    *     generic types.
-   * @param arg arguments of the operation.
+   * @param arg argument of the operation.
    * @param <R> return type.
    * @return Promise to the operation result.
    */
