@@ -35,5 +35,8 @@ public interface TestNexusService {
   Void sleep(Long sleepDurationMs);
 
   @Operation
+  String returnString();
+
+  @Operation
   String fail(String name);
 }

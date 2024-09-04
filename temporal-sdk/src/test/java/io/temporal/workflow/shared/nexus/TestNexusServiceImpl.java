@@ -32,9 +32,12 @@ public class TestNexusServiceImpl {
   public TestNexusServiceImpl() {}
 
   @OperationImpl
-  public OperationHandler<String, String> sayHello1() {
+  public OperationHandler<Void, Void> sayHello1() {
     // Implemented inline
-    return OperationHandler.sync((ctx, details, name) -> "Hello, " + name + "!");
+      return OperationHandler.sync((ctx, details, name) -> {
+        System.out.println("Hello, " + name + "!");
+      });
+    //return OperationHandler.sync((ctx, details, name) -> "Hello, " + name + "!");
   }
 
   @OperationImpl
@@ -61,6 +64,20 @@ public class TestNexusServiceImpl {
                   WorkflowOptions.newBuilder().setWorkflowId(o.getRequestId()).build());
 
           return WorkflowClient.start(workflow::execute, input);
+        });
+  }
+
+  @OperationImpl
+  public OperationHandler<Void, String> returnString() {
+    // Implemented via handler
+    return WorkflowRunNexusOperationHandler.fromWorkflowExecution(
+        (OperationContext ctx, OperationStartDetails o, WorkflowClient c, Void unused) -> {
+          TestWorkflows.TestWorkflowReturnString workflow =
+              c.newWorkflowStub(
+                  TestWorkflows.TestWorkflowReturnString.class,
+                  WorkflowOptions.newBuilder().setWorkflowId(o.getRequestId()).build());
+
+          return WorkflowClient.start(workflow::execute);
         });
   }
 

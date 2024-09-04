@@ -770,8 +770,8 @@ public final class WorkflowInternal {
 
     ServiceDefinition serviceDef = ServiceDefinition.fromClass(serviceInterface);
     NexusServiceOptions mergedOptions =
-        NexusServiceOptions.newBuilder(baseOptions)
-            .mergeNexusServiceOptions(predefinedNexusServiceOptions.get(serviceDef.getName()))
+        NexusServiceOptions.newBuilder(predefinedNexusServiceOptions.get(serviceDef.getName()))
+            .mergeNexusServiceOptions(baseOptions)
             .build();
     return (T)
         Proxy.newProxyInstance(
@@ -790,9 +790,13 @@ public final class WorkflowInternal {
         service, options, getWorkflowOutboundInterceptor(), WorkflowInternal::assertNotReadOnly);
   }
 
-  public static <T, R> OperationHandle<T> startNexusOperation(
+  public static <T, R> OperationHandle<R> startNexusOperation(
       Functions.Func1<T, R> operation, T arg) {
-    return null;
+    return StartNexusCallInternal.startNexusOperation(() -> operation.apply(arg));
+  }
+
+  public static <R> OperationHandle<R> startNexusOperation(Functions.Func<R> operation) {
+    return StartNexusCallInternal.startNexusOperation(() -> operation.apply());
   }
 
   static WorkflowOutboundCallsInterceptor getWorkflowOutboundInterceptor() {

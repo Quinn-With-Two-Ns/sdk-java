@@ -787,7 +787,10 @@ final class SyncWorkflowContext implements WorkflowContext, WorkflowOutboundCall
     Promise<R> result =
         resultPromise.thenApply(
             (b) ->
-                dataConverter.fromPayload(b.get(), input.getResultClass(), input.getResultType()));
+                input.getResultClass() != Void.class
+                    ? dataConverter.fromPayload(
+                        b.get(), input.getResultClass(), input.getResultType())
+                    : null);
     return new ExecuteNexusOperationOutput<>(result, operationPromise);
   }
 

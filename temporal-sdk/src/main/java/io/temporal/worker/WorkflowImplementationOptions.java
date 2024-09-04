@@ -148,7 +148,7 @@ public final class WorkflowImplementationOptions {
      * @param defaultNexusServiceOptions default NexusServiceOptions for all services in the
      *     workflow.
      */
-    public Builder setDefaultLocalActivityOptions(NexusServiceOptions defaultNexusServiceOptions) {
+    public Builder setDefaultNexusServiceOptions(NexusServiceOptions defaultNexusServiceOptions) {
       this.defaultNexusServiceOptions = Objects.requireNonNull(defaultNexusServiceOptions);
       return this;
     }

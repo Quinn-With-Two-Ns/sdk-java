@@ -25,16 +25,18 @@ import io.temporal.workflow.*;
 import io.temporal.workflow.shared.TestWorkflows;
 import io.temporal.workflow.shared.nexus.TestNexusServiceImpl;
 import java.time.Duration;
+import java.util.Optional;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 
-public class NexusUntypedOperationTest extends BaseNexusTest {
+public class UntypedNexusServiceStubTest extends BaseNexusTest {
   @Rule
   public SDKTestWorkflowRule testWorkflowRule =
       SDKTestWorkflowRule.newBuilder()
           .setUseExternalService(true)
-          .setWorkflowTypes(TestNexus.class)
+          .setWorkflowTypes(
+              TestNexus.class, TestWorkflowLongArgImpl.class, TestWorkflowReturnStringImpl.class)
           .setNexusServiceImplementation(new TestNexusServiceImpl())
           .build();
 
@@ -44,7 +46,7 @@ public class NexusUntypedOperationTest extends BaseNexusTest {
   }
 
   @Test
-  public void untypedOperationStub() {
+  public void untypedNexusServiceStub() {
     TestWorkflows.TestWorkflow1 workflowStub =
         testWorkflowRule.newWorkflowStubTimeoutOptions(TestWorkflows.TestWorkflow1.class);
     String result = workflowStub.execute(testWorkflowRule.getTaskQueue());
@@ -67,10 +69,48 @@ public class NexusUntypedOperationTest extends BaseNexusTest {
           Workflow.newUntypedNexusServiceStub("TestNexusService", serviceOptions);
       String syncResult = serviceStub.execute("sayHello1", String.class, name);
 
-      Promise<Void> asyncResult = serviceStub.executeAsync("sleep", Void.class, 100);
-      asyncResult.get();
+      OperationHandle<String> syncOpHandle = serviceStub.start("sayHello1", String.class, name);
+      Optional<String> syncOpId = syncOpHandle.getExecution().get();
+      // Execution id is not present for synchronous operations
+      if (syncOpId.isPresent()) {
+        Assert.fail("Execution id is present");
+      }
+      // Result should always be completed for a synchronous operations when the Execution promise
+      // is resolved
+      if (!syncOpHandle.getResult().isCompleted()) {
+        Assert.fail("Result is not completed");
+      }
+
+      Promise<Void> asyncVoidResult = serviceStub.executeAsync("sleep", Void.class, 100);
+      asyncVoidResult.get();
+
+      OperationHandle<Void> asyncOpHandle = serviceStub.start("sleep", Void.class, 100);
+      Optional<String> asyncOpId = asyncOpHandle.getExecution().get();
+      if (!asyncOpId.isPresent()) {
+        Assert.fail("Execution id is not present");
+      }
+      asyncOpHandle.getResult().get();
+
+      Promise<String> asyncStringResult =
+          serviceStub.executeAsync("returnString", String.class, null);
+      asyncStringResult.get();
 
       return syncResult;
+    }
+  }
+
+  public static class TestWorkflowLongArgImpl implements TestWorkflows.TestWorkflowLongArg {
+    @Override
+    public void execute(long arg) {
+      Workflow.sleep(arg);
+    }
+  }
+
+  public static class TestWorkflowReturnStringImpl
+      implements TestWorkflows.TestWorkflowReturnString {
+    @Override
+    public String execute() {
+      return Workflow.getInfo().getWorkflowId();
     }
   }
 }

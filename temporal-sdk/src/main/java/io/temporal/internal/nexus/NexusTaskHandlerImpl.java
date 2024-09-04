@@ -21,7 +21,6 @@
 package io.temporal.internal.nexus;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.uber.m3.tally.Scope;
 import io.nexusrpc.OperationUnsuccessfulException;
 import io.nexusrpc.handler.*;
@@ -184,7 +183,14 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
           serviceHandler.startOperation(ctx.build(), operationStartDetails.build(), input.build());
       if (result.isSync()) {
         StartOperationResponse.Sync.Builder sync = StartOperationResponse.Sync.newBuilder();
-        sync.setPayload(Payload.parseFrom(result.getSyncResult().getDataBytes()));
+        Payload.Builder payload =
+            Payload.newBuilder()
+                .setData(ByteString.copyFrom(result.getSyncResult().getDataBytes()));
+        result
+            .getSyncResult()
+            .getHeaders()
+            .forEach((k, v) -> payload.putMetadata(k, ByteString.copyFromUtf8(v)));
+        sync.setPayload(payload.build());
         startResponseBuilder.setSyncSuccess(sync.build());
       } else {
         startResponseBuilder.setAsyncSuccess(
@@ -203,8 +209,6 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
                       .putAllMetadata(e.getFailureInfo().getMetadata())
                       .build())
               .build());
-    } catch (InvalidProtocolBufferException e) {
-      throw new RuntimeException(e);
     }
     return startResponseBuilder.build();
   }

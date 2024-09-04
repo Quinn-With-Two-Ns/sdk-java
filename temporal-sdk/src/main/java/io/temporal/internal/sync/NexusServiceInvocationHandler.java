@@ -20,6 +20,7 @@
 
 package io.temporal.internal.sync;
 
+import com.google.common.base.Defaults;
 import io.nexusrpc.Operation;
 import io.nexusrpc.ServiceDefinition;
 import io.temporal.common.interceptors.WorkflowOutboundCallsInterceptor;
@@ -48,11 +49,16 @@ public class NexusServiceInvocationHandler implements InvocationHandler {
     if (method.getName().equals(StubMarker.GET_UNTYPED_STUB_METHOD)) {
       return stub;
     }
+    Object arg = args != null ? args[0] : null;
 
     Operation opAnnotation = method.getAnnotation(Operation.class);
     String opName = !opAnnotation.name().equals("") ? opAnnotation.name() : method.getName();
+    if (StartNexusCallInternal.isAsync()) {
+      StartNexusCallInternal.setAsyncResult(
+          this.stub.start(opName, method.getReturnType(), method.getGenericReturnType(), arg));
+      return Defaults.defaultValue(method.getReturnType());
+    }
     // TODO add getValueOrDefault?
-    return this.stub.execute(
-        opName, method.getReturnType(), method.getGenericReturnType(), args[0]);
+    return this.stub.execute(opName, method.getReturnType(), method.getGenericReturnType(), arg);
   }
 }

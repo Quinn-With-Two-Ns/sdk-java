@@ -1336,9 +1336,21 @@ public final class Workflow {
    * @return OperationHandle a handle to the operation.
    */
   @Experimental
-  public static <T, R> OperationHandle<T> startNexusOperation(
+  public static <T, R> OperationHandle<R> startNexusOperation(
       Functions.Func1<T, R> operation, T arg) {
     return WorkflowInternal.startNexusOperation(operation, arg);
+  }
+
+  /**
+   * Start a nexus operation.
+   *
+   * @param operation The only supported value is method reference to a proxy created through {@link
+   *     #newNexusServiceStub(Class)}.
+   * @return OperationHandle a handle to the operation.
+   */
+  @Experimental
+  public static <R> OperationHandle<R> startNexusOperation(Functions.Func<R> operation) {
+    return WorkflowInternal.startNexusOperation(operation);
   }
 
   /** Prohibit instantiation. */
