@@ -20,6 +20,8 @@
 
 package io.temporal.internal.sync;
 
+import static io.temporal.internal.common.InternalUtils.getValueOrDefault;
+
 import com.google.common.base.Defaults;
 import io.nexusrpc.Operation;
 import io.nexusrpc.ServiceDefinition;
@@ -52,13 +54,19 @@ public class NexusServiceInvocationHandler implements InvocationHandler {
     Object arg = args != null ? args[0] : null;
 
     Operation opAnnotation = method.getAnnotation(Operation.class);
+    if (opAnnotation == null) {
+      throw new IllegalArgumentException("Unknown method: " + method);
+    }
     String opName = !opAnnotation.name().equals("") ? opAnnotation.name() : method.getName();
+    // If the method was invoked as part of a start call then we need to return a handle back
+    // to the caller. The result of this method will be ignored.
     if (StartNexusCallInternal.isAsync()) {
       StartNexusCallInternal.setAsyncResult(
           this.stub.start(opName, method.getReturnType(), method.getGenericReturnType(), arg));
       return Defaults.defaultValue(method.getReturnType());
     }
-    // TODO add getValueOrDefault?
-    return this.stub.execute(opName, method.getReturnType(), method.getGenericReturnType(), arg);
+    return getValueOrDefault(
+        this.stub.execute(opName, method.getReturnType(), method.getGenericReturnType(), arg),
+        method.getReturnType());
   }
 }

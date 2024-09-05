@@ -100,7 +100,7 @@ public class NexusServiceStubTest extends BaseNexusTest {
       asyncStringResult.get();
       //
       OperationHandle<String> asyncStringHandle =
-          Workflow.startNexusOperation(serviceStub::returnString, null);
+          Workflow.startNexusOperation(serviceStub::returnString);
       Optional<String> asyncStringId = asyncStringHandle.getExecution().get();
       Assert.assertTrue("Execution id should be present", asyncOpId.isPresent());
       Assert.assertEquals(asyncStringId.get(), asyncStringHandle.getResult().get());

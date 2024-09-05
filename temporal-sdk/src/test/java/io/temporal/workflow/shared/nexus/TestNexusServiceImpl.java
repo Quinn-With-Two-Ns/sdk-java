@@ -32,12 +32,9 @@ public class TestNexusServiceImpl {
   public TestNexusServiceImpl() {}
 
   @OperationImpl
-  public OperationHandler<Void, Void> sayHello1() {
+  public OperationHandler<String, String> sayHello1() {
     // Implemented inline
-      return OperationHandler.sync((ctx, details, name) -> {
-        System.out.println("Hello, " + name + "!");
-      });
-    //return OperationHandler.sync((ctx, details, name) -> "Hello, " + name + "!");
+    return OperationHandler.sync((ctx, details, name) -> "Hello, " + name + "!");
   }
 
   @OperationImpl

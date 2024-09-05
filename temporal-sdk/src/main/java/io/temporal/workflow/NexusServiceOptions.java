@@ -97,6 +97,8 @@ public final class NexusServiceOptions {
         return this;
       }
       this.endpoint = (override.endpoint == null) ? this.endpoint : override.endpoint;
+      this.operationOptions =
+          (override.operationOptions == null) ? this.operationOptions : override.operationOptions;
       Map<String, NexusOperationOptions> mergeTo = this.operationMethodOptions;
       if (override.getOperationMethodOptions() != null) {
         override
