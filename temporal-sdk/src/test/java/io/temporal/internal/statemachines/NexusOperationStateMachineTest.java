@@ -38,6 +38,7 @@ import io.temporal.workflow.Functions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Test;
@@ -415,8 +416,7 @@ public class NexusOperationStateMachineTest {
       public void buildWorkflow(AsyncWorkflowBuilder<Void> builder) {
         ScheduleNexusOperationCommandAttributes.Builder attributes =
             newScheduleNexusOperationCommandAttributesBuilder();
-        AsyncWorkflowBuilder.DelayedCallback2<Optional<Payload>, Failure> delayedCallback =
-            new AsyncWorkflowBuilder.DelayedCallback2();
+        DelayedCallback2<Optional<Payload>, Failure> delayedCallback = new DelayedCallback2();
         builder
             .<Optional<String>, Failure>add2(
                 (v, c) ->
@@ -510,8 +510,7 @@ public class NexusOperationStateMachineTest {
       public void buildWorkflow(AsyncWorkflowBuilder<Void> builder) {
         ScheduleNexusOperationCommandAttributes.Builder attributes =
             newScheduleNexusOperationCommandAttributesBuilder();
-        AsyncWorkflowBuilder.DelayedCallback2<Optional<Payload>, Failure> delayedCallback =
-            new AsyncWorkflowBuilder.DelayedCallback2();
+        DelayedCallback2<Optional<Payload>, Failure> delayedCallback = new DelayedCallback2();
         builder
             .<Optional<String>, Failure>add2(
                 (v, c) ->
@@ -601,8 +600,7 @@ public class NexusOperationStateMachineTest {
       public void buildWorkflow(AsyncWorkflowBuilder<Void> builder) {
         ScheduleNexusOperationCommandAttributes.Builder attributes =
             newScheduleNexusOperationCommandAttributesBuilder();
-        AsyncWorkflowBuilder.DelayedCallback2<Optional<Payload>, Failure> delayedCallback =
-            new AsyncWorkflowBuilder.DelayedCallback2();
+        DelayedCallback2<Optional<Payload>, Failure> delayedCallback = new DelayedCallback2();
         builder
             .<Optional<String>, Failure>add2(
                 (v, c) ->
@@ -692,8 +690,7 @@ public class NexusOperationStateMachineTest {
       public void buildWorkflow(AsyncWorkflowBuilder<Void> builder) {
         ScheduleNexusOperationCommandAttributes.Builder attributes =
             newScheduleNexusOperationCommandAttributesBuilder();
-        AsyncWorkflowBuilder.DelayedCallback2<Optional<Payload>, Failure> delayedCallback =
-            new AsyncWorkflowBuilder.DelayedCallback2();
+        DelayedCallback2<Optional<Payload>, Failure> delayedCallback = new DelayedCallback2();
         builder
             .<Optional<String>, Failure>add2(
                 (v, c) ->
@@ -789,5 +786,17 @@ public class NexusOperationStateMachineTest {
         .setOperation(OPERATION)
         .setService(SERVICE)
         .setEndpoint(ENDPOINT);
+  }
+
+  class DelayedCallback2<T1, T2> {
+    private final AtomicReference<Functions.Proc2<T1, T2>> callback = new AtomicReference<>();
+
+    public void set(Functions.Proc2<T1, T2> callback) {
+      this.callback.set(callback);
+    }
+
+    public void run(T1 t1, T2 t2) {
+      callback.get().apply(t1, t2);
+    }
   }
 }

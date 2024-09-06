@@ -28,6 +28,11 @@ import java.lang.reflect.Type;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
+/**
+ * PayloadSerializer is a serializer that converts objects to and from {@link
+ * io.nexusrpc.Serializer.Content} objects by using the {@link DataConverter} to convert objects to
+ * and from {@link Payload} objects.
+ */
 class PayloadSerializer implements Serializer {
   DataConverter dataConverter;
 

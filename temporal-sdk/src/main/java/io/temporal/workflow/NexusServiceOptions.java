@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * Options for configuring a NexusService.
+ * Options for configuring a NexusService in a Workflow.
  *
  * <p>Use {@link NexusServiceOptions#newBuilder()} to construct an instance.
  */
@@ -55,13 +55,20 @@ public final class NexusServiceOptions {
     private NexusOperationOptions operationOptions;
     private Map<String, NexusOperationOptions> operationMethodOptions;
 
-    /** Sets the base operation options for the NexusService. */
+    /**
+     * Sets the operation options for the NexusService. These options are used as the default for
+     * all operations.
+     */
     public NexusServiceOptions.Builder setOperationOptions(NexusOperationOptions operationOptions) {
       this.operationOptions = operationOptions;
       return this;
     }
 
-    /** Sets the endpoint for the NexusService. */
+    /**
+     * Sets the endpoint for the NexusService.
+     *
+     * @param endpoint the endpoint for the NexusService
+     */
     public NexusServiceOptions.Builder setEndpoint(String endpoint) {
       this.endpoint = endpoint;
       return this;
@@ -70,6 +77,8 @@ public final class NexusServiceOptions {
     /**
      * Sets operation specific options by the operation name. Merged with the base operation
      * options.
+     *
+     * @param operationMethodOptions the operation specific options by the operation name
      */
     public NexusServiceOptions.Builder setOperationMethodOptions(
         Map<String, NexusOperationOptions> operationMethodOptions) {

@@ -24,6 +24,12 @@ import io.temporal.common.Experimental;
 import java.time.Duration;
 import java.util.Objects;
 
+/**
+ * NexusOperationOptions is used to specify the options for starting a Nexus operation from a
+ * Workflow.
+ *
+ * <p>Use {@link NexusOperationOptions#newBuilder()} to construct an instance.
+ */
 @Experimental
 public final class NexusOperationOptions {
   public static NexusOperationOptions.Builder newBuilder() {
@@ -47,6 +53,12 @@ public final class NexusOperationOptions {
   public static final class Builder {
     private Duration scheduleToCloseTimeout;
 
+    /**
+     * Sets the schedule to close timeout for the Nexus operation.
+     *
+     * @param scheduleToCloseTimeout the schedule to close timeout for the Nexus operation
+     * @return this
+     */
     public NexusOperationOptions.Builder setScheduleToCloseTimeout(
         Duration scheduleToCloseTimeout) {
       this.scheduleToCloseTimeout = scheduleToCloseTimeout;

@@ -1221,7 +1221,6 @@ public final class WorkflowStateMachines {
               command.getScheduleNexusOperationCommandAttributes();
           NexusOperationScheduledEventAttributes eventAttributes =
               event.getNexusOperationScheduledEventAttributes();
-          // TODO: Check endpoint?
           assertMatch(
               command,
               event,

@@ -105,6 +105,7 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
 
       CurrentNexusOperationContext.set(
           new NexusOperationContextImpl(taskQueue, client, metricsScope));
+
       switch (request.getVariantCase()) {
         case START_OPERATION:
           StartOperationResponse startResponse =

@@ -21,41 +21,41 @@
 package io.temporal.workflow.nexus;
 
 import io.temporal.client.WorkflowFailedException;
-import io.temporal.failure.ApplicationFailure;
+import io.temporal.failure.CanceledFailure;
 import io.temporal.failure.NexusOperationFailure;
 import io.temporal.testing.internal.SDKTestWorkflowRule;
-import io.temporal.workflow.NexusOperationOptions;
-import io.temporal.workflow.NexusServiceOptions;
-import io.temporal.workflow.Workflow;
+import io.temporal.workflow.*;
+import io.temporal.workflow.shared.TestWorkflows;
 import io.temporal.workflow.shared.TestWorkflows.TestWorkflow1;
 import io.temporal.workflow.shared.nexus.TestNexusService;
 import io.temporal.workflow.shared.nexus.TestNexusServiceImpl;
 import java.time.Duration;
+import java.util.Optional;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 
-public class NexusCancelTest extends BaseNexusTest {
+public class NexusCancelAsyncTest extends BaseNexusTest {
 
   @Rule
   public SDKTestWorkflowRule testWorkflowRule =
       SDKTestWorkflowRule.newBuilder()
           .setUseExternalService(true)
-          .setWorkflowTypes(TestNexus.class)
+          .setWorkflowTypes(TestNexus.class, TestWorkflowLongArgImpl.class)
           .setNexusServiceImplementation(new TestNexusServiceImpl())
           .build();
 
   @Test
-  public void failSyncOperation() {
+  public void cancelAsyncOperation() {
     TestWorkflow1 workflowStub =
         testWorkflowRule.newWorkflowStubTimeoutOptions(TestWorkflow1.class);
     WorkflowFailedException exception =
         Assert.assertThrows(WorkflowFailedException.class, () -> workflowStub.execute(""));
     Assert.assertTrue(exception.getCause() instanceof NexusOperationFailure);
     NexusOperationFailure nexusFailure = (NexusOperationFailure) exception.getCause();
-    Assert.assertTrue(nexusFailure.getCause() instanceof ApplicationFailure);
-    ApplicationFailure applicationFailure = (ApplicationFailure) nexusFailure.getCause();
-    Assert.assertEquals("failed to say hello", applicationFailure.getOriginalMessage());
+    Assert.assertTrue(nexusFailure.getCause() instanceof CanceledFailure);
+    CanceledFailure canceledFailure = (CanceledFailure) nexusFailure.getCause();
+    Assert.assertEquals("operation canceled", canceledFailure.getOriginalMessage());
   }
 
   @Override
@@ -78,9 +78,26 @@ public class NexusCancelTest extends BaseNexusTest {
               .build();
       TestNexusService testNexusService =
           Workflow.newNexusServiceStub(TestNexusService.class, serviceOptions);
-      testNexusService.fail(Workflow.getInfo().getWorkflowId());
-      // Workflow will not reach this point
+      Workflow.newCancellationScope(
+              () -> {
+                OperationHandle<Void> handle =
+                    Workflow.startNexusOperation(testNexusService::sleep, 1000L);
+                // Wait for the operation to start before canceling it
+                handle.getExecution().get();
+                CancellationScope.current().cancel();
+                // Wait for the operation to be canceled
+                handle.getResult().get();
+              })
+          .run();
+      // Workflow should not reach this point
       return "fail";
+    }
+  }
+
+  public static class TestWorkflowLongArgImpl implements TestWorkflows.TestWorkflowLongArg {
+    @Override
+    public void execute(long arg) {
+      Workflow.sleep(arg);
     }
   }
 }

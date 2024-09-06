@@ -22,7 +22,6 @@ package io.temporal.internal.statemachines;
 
 import io.temporal.workflow.Functions;
 import java.util.Queue;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Represents a step in a workflow which takes {@code <T>} as an input value from the previous step
@@ -50,18 +49,6 @@ interface AsyncWorkflowBuilder<T> {
 
     public T2 getT2() {
       return t2;
-    }
-  }
-
-  class DelayedCallback2<T1, T2> {
-    private final AtomicReference<Functions.Proc2<T1, T2>> callback = new AtomicReference<>();
-
-    public void set(Functions.Proc2<T1, T2> callback) {
-      this.callback.set(callback);
-    }
-
-    public void run(T1 t1, T2 t2) {
-      callback.get().apply(t1, t2);
     }
   }
 

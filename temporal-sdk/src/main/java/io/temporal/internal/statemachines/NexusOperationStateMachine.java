@@ -227,10 +227,10 @@ final class NexusOperationStateMachine
 
   /**
    * @param attributes attributes used to schedule the nexus operation
-   * @param completionCallback one of ActivityTaskCompletedEvent, ActivityTaskFailedEvent,
-   *     ActivityTaskTimedOutEvent, ActivityTaskCanceledEvents
+   * @param startedCallback invoked when the Nexus operation start
+   * @param completionCallback invoked when Nexus operation completes
    * @param commandSink sink to send commands
-   * @return an instance of ActivityCommands
+   * @return an instance of NexusOperationStateMachine
    */
   public static NexusOperationStateMachine newInstance(
       ScheduleNexusOperationCommandAttributes attributes,
