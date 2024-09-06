@@ -41,7 +41,7 @@ public class UntypedNexusServiceStubTest extends BaseNexusTest {
           .build();
 
   @Override
-  SDKTestWorkflowRule getTestWorkflowRule() {
+  protected SDKTestWorkflowRule getTestWorkflowRule() {
     return testWorkflowRule;
   }
 
@@ -69,7 +69,8 @@ public class UntypedNexusServiceStubTest extends BaseNexusTest {
           Workflow.newUntypedNexusServiceStub("TestNexusService", serviceOptions);
       String syncResult = serviceStub.execute("sayHello1", String.class, name);
 
-      OperationHandle<String> syncOpHandle = serviceStub.start("sayHello1", String.class, name);
+      NexusOperationHandle<String> syncOpHandle =
+          serviceStub.start("sayHello1", String.class, name);
       Optional<String> syncOpId = syncOpHandle.getExecution().get();
       // Execution id is not present for synchronous operations
       if (syncOpId.isPresent()) {
@@ -84,7 +85,7 @@ public class UntypedNexusServiceStubTest extends BaseNexusTest {
       Promise<Void> asyncVoidResult = serviceStub.executeAsync("sleep", Void.class, 100);
       asyncVoidResult.get();
 
-      OperationHandle<Void> asyncOpHandle = serviceStub.start("sleep", Void.class, 100);
+      NexusOperationHandle<Void> asyncOpHandle = serviceStub.start("sleep", Void.class, 100);
       Optional<String> asyncOpId = asyncOpHandle.getExecution().get();
       if (!asyncOpId.isPresent()) {
         Assert.fail("Execution id is not present");

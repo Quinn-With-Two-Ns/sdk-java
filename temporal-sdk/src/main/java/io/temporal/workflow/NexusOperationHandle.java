@@ -28,7 +28,7 @@ import java.util.Optional;
  * Workflow#startNexusOperation}.
  */
 @Experimental
-public interface OperationHandle<R> {
+public interface NexusOperationHandle<R> {
   /**
    * Returns a promise that is resolved when the operation reaches the STARTED state. For
    * synchronous operations, this will be resolved at the same time as the promise from

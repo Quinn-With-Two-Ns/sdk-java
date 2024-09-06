@@ -30,7 +30,6 @@ import io.temporal.workflow.shared.TestWorkflows.TestWorkflow1;
 import io.temporal.workflow.shared.nexus.TestNexusService;
 import io.temporal.workflow.shared.nexus.TestNexusServiceImpl;
 import java.time.Duration;
-import java.util.Optional;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -59,7 +58,7 @@ public class NexusCancelAsyncTest extends BaseNexusTest {
   }
 
   @Override
-  SDKTestWorkflowRule getTestWorkflowRule() {
+  protected SDKTestWorkflowRule getTestWorkflowRule() {
     return testWorkflowRule;
   }
 
@@ -80,7 +79,7 @@ public class NexusCancelAsyncTest extends BaseNexusTest {
           Workflow.newNexusServiceStub(TestNexusService.class, serviceOptions);
       Workflow.newCancellationScope(
               () -> {
-                OperationHandle<Void> handle =
+                NexusOperationHandle<Void> handle =
                     Workflow.startNexusOperation(testNexusService::sleep, 1000L);
                 // Wait for the operation to start before canceling it
                 handle.getExecution().get();

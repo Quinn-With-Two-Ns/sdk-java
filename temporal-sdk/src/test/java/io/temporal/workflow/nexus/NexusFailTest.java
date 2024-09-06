@@ -55,7 +55,7 @@ public class NexusFailTest extends BaseNexusTest {
   }
 
   @Override
-  SDKTestWorkflowRule getTestWorkflowRule() {
+  protected SDKTestWorkflowRule getTestWorkflowRule() {
     return testWorkflowRule;
   }
 
@@ -74,6 +74,44 @@ public class NexusFailTest extends BaseNexusTest {
               .build();
       TestNexusService testNexusService =
           Workflow.newNexusServiceStub(TestNexusService.class, serviceOptions);
+      try {
+        testNexusService.fail(Workflow.getInfo().getWorkflowId());
+      } catch (NexusOperationFailure nexusFailure) {
+        Assert.assertTrue(nexusFailure.getCause() instanceof ApplicationFailure);
+        ApplicationFailure applicationFailure = (ApplicationFailure) nexusFailure.getCause();
+        Assert.assertEquals("failed to say hello", applicationFailure.getOriginalMessage());
+      }
+
+      Promise<String> failPromise =
+          Async.function(testNexusService::fail, Workflow.getInfo().getWorkflowId());
+      try {
+        // Wait for the promise to fail
+        failPromise.get();
+      } catch (NexusOperationFailure nexusFailure) {
+        Assert.assertTrue(nexusFailure.getCause() instanceof ApplicationFailure);
+        ApplicationFailure applicationFailure = (ApplicationFailure) nexusFailure.getCause();
+        Assert.assertEquals("failed to say hello", applicationFailure.getOriginalMessage());
+      }
+
+      NexusOperationHandle handle =
+          Workflow.startNexusOperation(testNexusService::fail, Workflow.getInfo().getWorkflowId());
+      try {
+        // Wait for the operation to fail
+        handle.getExecution().get();
+      } catch (NexusOperationFailure nexusFailure) {
+        Assert.assertTrue(nexusFailure.getCause() instanceof ApplicationFailure);
+        ApplicationFailure applicationFailure = (ApplicationFailure) nexusFailure.getCause();
+        Assert.assertEquals("failed to say hello", applicationFailure.getOriginalMessage());
+      }
+      try {
+        // Since the operation has failed, the result should throw the same exception as well
+        handle.getResult().get();
+      } catch (NexusOperationFailure nexusFailure) {
+        Assert.assertTrue(nexusFailure.getCause() instanceof ApplicationFailure);
+        ApplicationFailure applicationFailure = (ApplicationFailure) nexusFailure.getCause();
+        Assert.assertEquals("failed to say hello", applicationFailure.getOriginalMessage());
+      }
+      // Throw an exception to fail the workflow and test that the exception is propagated correctly
       testNexusService.fail(Workflow.getInfo().getWorkflowId());
       // Workflow will not reach this point
       return "fail";

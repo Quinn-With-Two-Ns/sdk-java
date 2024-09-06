@@ -1336,7 +1336,7 @@ public final class Workflow {
    * @return OperationHandle a handle to the operation.
    */
   @Experimental
-  public static <T, R> OperationHandle<R> startNexusOperation(
+  public static <T, R> NexusOperationHandle<R> startNexusOperation(
       Functions.Func1<T, R> operation, T arg) {
     return WorkflowInternal.startNexusOperation(operation, arg);
   }
@@ -1349,7 +1349,7 @@ public final class Workflow {
    * @return OperationHandle a handle to the operation.
    */
   @Experimental
-  public static <R> OperationHandle<R> startNexusOperation(Functions.Func<R> operation) {
+  public static <R> NexusOperationHandle<R> startNexusOperation(Functions.Func<R> operation) {
     return WorkflowInternal.startNexusOperation(operation);
   }
 

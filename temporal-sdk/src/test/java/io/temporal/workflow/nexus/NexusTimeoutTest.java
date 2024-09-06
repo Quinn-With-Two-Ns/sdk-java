@@ -60,7 +60,7 @@ public class NexusTimeoutTest extends BaseNexusTest {
   }
 
   @Override
-  SDKTestWorkflowRule getTestWorkflowRule() {
+  protected SDKTestWorkflowRule getTestWorkflowRule() {
     return testWorkflowRule;
   }
 

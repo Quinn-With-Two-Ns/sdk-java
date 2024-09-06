@@ -93,7 +93,7 @@ public interface NexusServiceStub {
    * @param <R> return type.
    * @return A handle that can be used to wait for the operation to start or wait for it to finish
    */
-  <R> OperationHandle<R> start(String operationName, Class<R> resultClass, Object arg);
+  <R> NexusOperationHandle<R> start(String operationName, Class<R> resultClass, Object arg);
 
   /**
    * Request to start an operation by its type name and arguments
@@ -107,6 +107,6 @@ public interface NexusServiceStub {
    * @param <R> return type.
    * @return A handle that can be used to wait for the operation to start or wait for it to finish
    */
-  <R> OperationHandle<R> start(
+  <R> NexusOperationHandle<R> start(
       String operationName, Class<R> resultClass, Type resultType, Object arg);
 }

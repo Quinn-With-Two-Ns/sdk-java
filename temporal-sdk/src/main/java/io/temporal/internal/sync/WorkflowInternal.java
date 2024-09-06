@@ -790,12 +790,12 @@ public final class WorkflowInternal {
         service, options, getWorkflowOutboundInterceptor(), WorkflowInternal::assertNotReadOnly);
   }
 
-  public static <T, R> OperationHandle<R> startNexusOperation(
+  public static <T, R> NexusOperationHandle<R> startNexusOperation(
       Functions.Func1<T, R> operation, T arg) {
     return StartNexusCallInternal.startNexusOperation(() -> operation.apply(arg));
   }
 
-  public static <R> OperationHandle<R> startNexusOperation(Functions.Func<R> operation) {
+  public static <R> NexusOperationHandle<R> startNexusOperation(Functions.Func<R> operation) {
     return StartNexusCallInternal.startNexusOperation(() -> operation.apply());
   }
 

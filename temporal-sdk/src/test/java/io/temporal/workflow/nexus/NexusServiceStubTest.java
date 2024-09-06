@@ -42,7 +42,7 @@ public class NexusServiceStubTest extends BaseNexusTest {
           .build();
 
   @Override
-  SDKTestWorkflowRule getTestWorkflowRule() {
+  protected SDKTestWorkflowRule getTestWorkflowRule() {
     return testWorkflowRule;
   }
 
@@ -74,7 +74,7 @@ public class NexusServiceStubTest extends BaseNexusTest {
       Promise<String> syncPromise = Async.function(serviceStub::sayHello1, name);
       Assert.assertEquals(syncPromise.get(), syncResult);
       // Try to call a synchronous operation in a non-blocking way using a handle
-      OperationHandle<String> syncOpHandle =
+      NexusOperationHandle<String> syncOpHandle =
           Workflow.startNexusOperation(serviceStub::sayHello1, name);
       Optional<String> syncOpId = syncOpHandle.getExecution().get();
       // Execution id is not present for synchronous operations
@@ -89,7 +89,8 @@ public class NexusServiceStubTest extends BaseNexusTest {
       Promise<Void> asyncPromise = Async.procedure(serviceStub::sleep, 100L);
       asyncPromise.get();
       // Try to call an asynchronous operation in a non-blocking way using a handle
-      OperationHandle<Void> asyncOpHandle = Workflow.startNexusOperation(serviceStub::sleep, 100L);
+      NexusOperationHandle<Void> asyncOpHandle =
+          Workflow.startNexusOperation(serviceStub::sleep, 100L);
       Optional<String> asyncOpId = asyncOpHandle.getExecution().get();
       Assert.assertTrue("Execution id should be present", asyncOpId.isPresent());
 
@@ -99,7 +100,7 @@ public class NexusServiceStubTest extends BaseNexusTest {
       Promise<String> asyncStringResult = Async.function(serviceStub::returnString);
       asyncStringResult.get();
       //
-      OperationHandle<String> asyncStringHandle =
+      NexusOperationHandle<String> asyncStringHandle =
           Workflow.startNexusOperation(serviceStub::returnString);
       Optional<String> asyncStringId = asyncStringHandle.getExecution().get();
       Assert.assertTrue("Execution id should be present", asyncOpId.isPresent());

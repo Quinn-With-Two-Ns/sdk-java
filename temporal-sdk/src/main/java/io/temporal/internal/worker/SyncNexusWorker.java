@@ -64,6 +64,7 @@ public class SyncNexusWorker implements SuspendableWorker {
   public CompletableFuture<Void> shutdown(ShutdownManager shutdownManager, boolean interruptTasks) {
     return worker
         .shutdown(shutdownManager, interruptTasks)
+        .thenCompose(r -> taskHandler.shutdown(shutdownManager, interruptTasks))
         .exceptionally(
             e -> {
               log.error("[BUG] Unexpected exception during shutdown", e);

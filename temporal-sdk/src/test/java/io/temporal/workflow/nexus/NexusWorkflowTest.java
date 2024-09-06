@@ -47,7 +47,7 @@ public class NexusWorkflowTest extends BaseNexusTest {
   }
 
   @Override
-  SDKTestWorkflowRule getTestWorkflowRule() {
+  protected SDKTestWorkflowRule getTestWorkflowRule() {
     return testWorkflowRule;
   }
 

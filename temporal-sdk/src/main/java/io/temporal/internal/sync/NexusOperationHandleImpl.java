@@ -20,15 +20,15 @@
 
 package io.temporal.internal.sync;
 
-import io.temporal.workflow.OperationHandle;
+import io.temporal.workflow.NexusOperationHandle;
 import io.temporal.workflow.Promise;
 import java.util.Optional;
 
-public class OperationHandleImpl<R> implements OperationHandle<R> {
+public class NexusOperationHandleImpl<R> implements NexusOperationHandle<R> {
   Promise<Optional<String>> operationExecution;
   Promise<R> result;
 
-  public OperationHandleImpl(Promise<Optional<String>> operationExecution, Promise<R> result) {
+  public NexusOperationHandleImpl(Promise<Optional<String>> operationExecution, Promise<R> result) {
     this.operationExecution = operationExecution;
     this.result = result;
   }

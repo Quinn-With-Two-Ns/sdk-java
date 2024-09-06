@@ -34,7 +34,7 @@ import org.junit.Before;
 
 public abstract class BaseNexusTest {
 
-  abstract SDKTestWorkflowRule getTestWorkflowRule();
+  protected abstract SDKTestWorkflowRule getTestWorkflowRule();
 
   Endpoint endpoint;
 

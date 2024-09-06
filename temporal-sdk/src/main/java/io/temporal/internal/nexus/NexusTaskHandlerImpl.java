@@ -22,6 +22,7 @@ package io.temporal.internal.nexus;
 
 import com.google.protobuf.ByteString;
 import com.uber.m3.tally.Scope;
+import io.nexusrpc.Header;
 import io.nexusrpc.OperationUnsuccessfulException;
 import io.nexusrpc.handler.*;
 import io.temporal.api.common.v1.Payload;
@@ -30,10 +31,12 @@ import io.temporal.client.WorkflowClient;
 import io.temporal.common.converter.DataConverter;
 import io.temporal.internal.worker.NexusTask;
 import io.temporal.internal.worker.NexusTaskHandler;
+import io.temporal.internal.worker.ShutdownManager;
 import io.temporal.worker.TypeAlreadyRegisteredException;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -73,7 +76,7 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
   public Result handle(NexusTask task, Scope metricsScope) {
     Request request = task.getResponse().getRequest();
     Map<String, String> headers = task.getResponse().getRequest().getHeaderMap();
-    if (headers != null) {
+    if (headers == null) {
       headers = Collections.emptyMap();
     }
 
@@ -84,7 +87,7 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
 
     ScheduledFuture<?> timeoutTask = null;
     try {
-      String timeoutString = headers.get("Request-Timeout");
+      String timeoutString = headers.get(Header.REQUEST_TIMEOUT);
       if (timeoutString != null) {
         try {
           Duration timeout = Duration.parse(timeoutString);
@@ -96,7 +99,7 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
         } catch (DateTimeParseException e) {
           return new Result(
               HandlerError.newBuilder()
-                  .setErrorType("BAD_REQUEST")
+                  .setErrorType(OperationHandlerException.ErrorType.BAD_REQUEST.toString())
                   .setFailure(
                       Failure.newBuilder().setMessage("cannot parse request timeout").build())
                   .build());
@@ -118,7 +121,7 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
         default:
           return new Result(
               HandlerError.newBuilder()
-                  .setErrorType("NOT_IMPLEMENTED")
+                  .setErrorType(OperationHandlerException.ErrorType.NOT_IMPLEMENTED.toString())
                   .setFailure(Failure.newBuilder().setMessage("unknown request type").build())
                   .build());
       }
@@ -133,10 +136,10 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
                       .putAllMetadata(e.getFailureInfo().getMetadata())
                       .build())
               .build());
-    } catch (Exception e) {
+    } catch (Throwable e) {
       return new Result(
           HandlerError.newBuilder()
-              .setErrorType("INTERNAL")
+              .setErrorType(OperationHandlerException.ErrorType.INTERNAL.toString())
               .setFailure(
                   Failure.newBuilder()
                       .setMessage("internal error")
@@ -200,7 +203,6 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
                 .build());
       }
     } catch (OperationUnsuccessfulException e) {
-      // TODO: Copy failure details?
       startResponseBuilder.setOperationError(
           UnsuccessfulOperationError.newBuilder()
               .setOperationState(e.getState().toString().toLowerCase())
@@ -232,5 +234,10 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
               + instance.getDefinition().getName()
               + "\" service type is already registered with the worker");
     }
+  }
+
+  public CompletionStage<Void> shutdown(ShutdownManager shutdownManager, boolean interruptTasks) {
+    return shutdownManager.shutdownExecutorNow(
+        scheduler, "NexusTaskHandlerImpl#scheduler", Duration.ofSeconds(5));
   }
 }

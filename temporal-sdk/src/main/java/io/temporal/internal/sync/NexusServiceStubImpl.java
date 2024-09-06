@@ -95,12 +95,12 @@ public class NexusServiceStubImpl implements NexusServiceStub {
   }
 
   @Override
-  public <R> OperationHandle<R> start(String operationName, Class<R> resultClass, Object arg) {
+  public <R> NexusOperationHandle<R> start(String operationName, Class<R> resultClass, Object arg) {
     return start(operationName, resultClass, resultClass, arg);
   }
 
   @Override
-  public <R> OperationHandle<R> start(
+  public <R> NexusOperationHandle<R> start(
       String operationName, Class<R> resultClass, Type resultType, Object arg) {
     assertReadOnly.apply("schedule nexus operation");
     NexusOperationOptions mergedOptions =
@@ -118,6 +118,6 @@ public class NexusServiceStubImpl implements NexusServiceStub {
                 arg,
                 mergedOptions,
                 Collections.emptyMap()));
-    return new OperationHandleImpl(result.getOperationExecution(), result.getResult());
+    return new NexusOperationHandleImpl(result.getOperationExecution(), result.getResult());
   }
 }

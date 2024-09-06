@@ -38,7 +38,7 @@ public class NexusSyncOperationTest extends BaseNexusTest {
           .build();
 
   @Override
-  SDKTestWorkflowRule getTestWorkflowRule() {
+  protected SDKTestWorkflowRule getTestWorkflowRule() {
     return testWorkflowRule;
   }
 
