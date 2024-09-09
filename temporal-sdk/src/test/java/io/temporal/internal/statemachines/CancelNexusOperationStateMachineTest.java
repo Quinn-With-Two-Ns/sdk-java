@@ -20,15 +20,18 @@
 
 package io.temporal.internal.statemachines;
 
+import static io.temporal.internal.statemachines.NexusOperationStateMachineTest.*;
 import static io.temporal.internal.statemachines.TestHistoryBuilder.assertCommand;
 import static org.junit.Assert.*;
 
 import io.temporal.api.command.v1.Command;
 import io.temporal.api.command.v1.RequestCancelNexusOperationCommandAttributes;
-import io.temporal.api.common.v1.Payloads;
+import io.temporal.api.command.v1.ScheduleNexusOperationCommandAttributes;
+import io.temporal.api.common.v1.Payload;
 import io.temporal.api.enums.v1.CommandType;
 import io.temporal.api.enums.v1.EventType;
-import io.temporal.api.history.v1.NexusOperationCancelRequestedEventAttributes;
+import io.temporal.api.failure.v1.Failure;
+import io.temporal.api.history.v1.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -75,13 +78,21 @@ public class CancelNexusOperationStateMachineTest {
     class TestListener extends TestEntityManagerListenerBase {
       @Override
       protected void buildWorkflow(AsyncWorkflowBuilder<Void> builder) {
-        RequestCancelNexusOperationCommandAttributes attributes =
+        RequestCancelNexusOperationCommandAttributes cancelAttributes =
             RequestCancelNexusOperationCommandAttributes.newBuilder()
-                .setScheduledEventId(4)
+                .setScheduledEventId(5)
                 .build();
+        ScheduleNexusOperationCommandAttributes scheduleAttributes =
+            newScheduleNexusOperationCommandAttributesBuilder().build();
+        NexusOperationStateMachineTest.DelayedCallback2<Optional<Payload>, Failure>
+            delayedCallback = new NexusOperationStateMachineTest.DelayedCallback2();
         builder
-            .add((v) -> stateMachines.requestCancelNexusOperation(attributes))
-            .<Optional<Payloads>>add1((r, c) -> stateMachines.completeWorkflow(Optional.empty()));
+            .<Optional<String>, Failure>add2(
+                (v, c) ->
+                    stateMachines.startNexusOperation(scheduleAttributes, c, delayedCallback::run))
+            .add((v) -> stateMachines.requestCancelNexusOperation(cancelAttributes))
+            .<Optional<Payload>, Failure>add2((pair, c) -> delayedCallback.set(c))
+            .add((pair) -> stateMachines.failWorkflow(pair.getT2()));
       }
     }
     /*
@@ -89,34 +100,58 @@ public class CancelNexusOperationStateMachineTest {
         2: EVENT_TYPE_WORKFLOW_TASK_SCHEDULED
         3: EVENT_TYPE_WORKFLOW_TASK_STARTED
         4: EVENT_TYPE_WORKFLOW_TASK_COMPLETED
-        5: EVENT_TYPE_NEXUS_OPERATION_CANCEL_REQUESTED
-        6: EVENT_TYPE_WORKFLOW_TASK_SCHEDULED
-        7: EVENT_TYPE_WORKFLOW_TASK_STARTED
+        5: EVENT_TYPE_NEXUS_OPERATION_SCHEDULED
+        6: EVENT_TYPE_NEXUS_OPERATION_STARTED
+        7: EVENT_TYPE_WORKFLOW_TASK_SCHEDULED
+        8: EVENT_TYPE_WORKFLOW_TASK_STARTED
+        9: EVENT_TYPE_NEXUS_OPERATION_CANCEL_REQUESTED
+        10: EVENT_TYPE_NEXUS_OPERATION_CANCELED
+        11: EVENT_TYPE_WORKFLOW_TASK_SCHEDULED
+        12: EVENT_TYPE_WORKFLOW_TASK_STARTED
     */
     TestHistoryBuilder h =
         new TestHistoryBuilder()
             .add(EventType.EVENT_TYPE_WORKFLOW_EXECUTION_STARTED)
-            .addWorkflowTask()
-            .add(
-                EventType.EVENT_TYPE_NEXUS_OPERATION_CANCEL_REQUESTED,
-                NexusOperationCancelRequestedEventAttributes.newBuilder()
-                    .setScheduledEventId(4)
-                    .build())
-            .addWorkflowTaskScheduledAndStarted();
+            .addWorkflowTask();
+    long scheduledEventId =
+        h.addGetEventId(
+            EventType.EVENT_TYPE_NEXUS_OPERATION_SCHEDULED,
+            newNexusOperationScheduledEventAttributesBuilder().build());
+    h.add(
+            EventType.EVENT_TYPE_NEXUS_OPERATION_STARTED,
+            NexusOperationStartedEventAttributes.newBuilder()
+                .setScheduledEventId(scheduledEventId)
+                .setRequestId("requestId")
+                .setOperationId(OPERATION_ID)
+                .build())
+        .addWorkflowTask()
+        .add(
+            EventType.EVENT_TYPE_NEXUS_OPERATION_CANCEL_REQUESTED,
+            NexusOperationCancelRequestedEventAttributes.newBuilder()
+                .setScheduledEventId(scheduledEventId)
+                .build())
+        .add(
+            EventType.EVENT_TYPE_NEXUS_OPERATION_CANCELED,
+            NexusOperationCanceledEventAttributes.newBuilder()
+                .setScheduledEventId(scheduledEventId)
+                .setFailure(Failure.newBuilder().setMessage("canceled").build())
+                .build())
+        .addWorkflowTaskScheduledAndStarted();
     {
       TestEntityManagerListenerBase listener = new TestListener();
       stateMachines = newStateMachines(listener);
       List<Command> commands = h.handleWorkflowTaskTakeCommands(stateMachines, 1);
-      assertCommand(CommandType.COMMAND_TYPE_REQUEST_CANCEL_NEXUS_OPERATION, commands);
-      assertEquals(
-          4,
-          commands.get(0).getRequestCancelNexusOperationCommandAttributes().getScheduledEventId());
+      assertCommand(CommandType.COMMAND_TYPE_SCHEDULE_NEXUS_OPERATION, commands);
     }
     {
       List<Command> commands = h.handleWorkflowTaskTakeCommands(stateMachines, 2);
       assertEquals(1, commands.size());
-      assertEquals(
-          CommandType.COMMAND_TYPE_COMPLETE_WORKFLOW_EXECUTION, commands.get(0).getCommandType());
+      assertCommand(CommandType.COMMAND_TYPE_REQUEST_CANCEL_NEXUS_OPERATION, commands);
+    }
+    {
+      List<Command> commands = h.handleWorkflowTaskTakeCommands(stateMachines, 3);
+      assertEquals(1, commands.size());
+      assertCommand(CommandType.COMMAND_TYPE_FAIL_WORKFLOW_EXECUTION, commands);
     }
   }
 }

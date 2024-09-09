@@ -408,7 +408,6 @@ class TestHistoryBuilder {
       case EVENT_TYPE_CHILD_WORKFLOW_EXECUTION_TERMINATED:
         return ChildWorkflowExecutionTerminatedEventAttributes.newBuilder()
             .setInitiatedEventId(initiatedEventId);
-
       case EVENT_TYPE_UNSPECIFIED:
       case EVENT_TYPE_WORKFLOW_EXECUTION_FAILED:
       case EVENT_TYPE_WORKFLOW_EXECUTION_TIMED_OUT:

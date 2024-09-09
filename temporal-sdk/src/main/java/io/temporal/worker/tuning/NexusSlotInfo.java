@@ -45,6 +45,26 @@ public class NexusSlotInfo extends SlotInfo {
     this.workerBuildId = workerBuildId;
   }
 
+  public String getService() {
+    return service;
+  }
+
+  public String getOperation() {
+    return operation;
+  }
+
+  public String getTaskQueue() {
+    return taskQueue;
+  }
+
+  public String getWorkerIdentity() {
+    return workerIdentity;
+  }
+
+  public String getWorkerBuildId() {
+    return workerBuildId;
+  }
+
   @Override
   public String toString() {
     return "NexusSlotInfo{"

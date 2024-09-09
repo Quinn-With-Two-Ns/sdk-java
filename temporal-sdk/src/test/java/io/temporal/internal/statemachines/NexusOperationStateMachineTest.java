@@ -47,7 +47,7 @@ public class NexusOperationStateMachineTest {
   private static final String OPERATION = "test-operation";
   private static final String SERVICE = "test-service";
   private static final String ENDPOINT = "test-endpoint";
-  private static final String OPERATION_ID = "test-operation-id";
+  static final String OPERATION_ID = "test-operation-id";
   private final DataConverter converter = DefaultDataConverter.STANDARD_INSTANCE;
   private static final List<
           StateMachine<
@@ -788,7 +788,7 @@ public class NexusOperationStateMachineTest {
         .setEndpoint(ENDPOINT);
   }
 
-  class DelayedCallback2<T1, T2> {
+  public static class DelayedCallback2<T1, T2> {
     private final AtomicReference<Functions.Proc2<T1, T2>> callback = new AtomicReference<>();
 
     public void set(Functions.Proc2<T1, T2> callback) {

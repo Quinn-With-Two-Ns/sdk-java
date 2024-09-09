@@ -29,12 +29,12 @@ import io.temporal.api.common.v1.Payload;
 import io.temporal.api.nexus.v1.*;
 import io.temporal.client.WorkflowClient;
 import io.temporal.common.converter.DataConverter;
+import io.temporal.internal.common.NexusUtil;
 import io.temporal.internal.worker.NexusTask;
 import io.temporal.internal.worker.NexusTaskHandler;
 import io.temporal.internal.worker.ShutdownManager;
 import io.temporal.worker.TypeAlreadyRegisteredException;
 import java.time.Duration;
-import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executors;
@@ -90,13 +90,13 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
       String timeoutString = headers.get(Header.REQUEST_TIMEOUT);
       if (timeoutString != null) {
         try {
-          Duration timeout = Duration.parse(timeoutString);
+          Duration timeout = NexusUtil.parseRequestTimeout(timeoutString);
           timeoutTask =
               scheduler.schedule(
                   () -> canceller.cancel("timeout"),
                   timeout.toMillis(),
                   java.util.concurrent.TimeUnit.MILLISECONDS);
-        } catch (DateTimeParseException e) {
+        } catch (IllegalArgumentException e) {
           return new Result(
               HandlerError.newBuilder()
                   .setErrorType(OperationHandlerException.ErrorType.BAD_REQUEST.toString())

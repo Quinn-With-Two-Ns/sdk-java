@@ -256,11 +256,9 @@ final class NexusWorker implements SuspendableWorker {
       try {
         result = handleNexusTask(task, metricsScope);
       } finally {
+        task.getCompletionCallback().apply();
         MDC.remove(LoggerTag.NEXUS_SERVICE);
         MDC.remove(LoggerTag.NEXUS_OPERATION);
-        if (result == null) {
-          task.getCompletionCallback().apply();
-        }
       }
     }
 

@@ -57,8 +57,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Hosts activity, nexus and workflow implementations. Uses long poll to receive activity and
- * workflow tasks and processes them in a correspondent thread pool.
+ * Hosts activity, nexus and workflow implementations. Uses long poll to receive workflow, activity
+ * and nexus tasks and processes them in a correspondent thread pool.
  */
 public final class Worker {
   private static final Logger log = LoggerFactory.getLogger(Worker.class);

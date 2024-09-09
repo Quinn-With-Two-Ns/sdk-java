@@ -43,12 +43,13 @@ public class CompositeTuner implements WorkerTuner {
     this.workflowTaskSlotSupplier = Objects.requireNonNull(workflowTaskSlotSupplier);
     this.activityTaskSlotSupplier = Objects.requireNonNull(activityTaskSlotSupplier);
     this.localActivitySlotSupplier = Objects.requireNonNull(localActivitySlotSupplier);
-    this.nexusSlotSupplier = nexusSlotSupplier;
+    this.nexusSlotSupplier = Objects.requireNonNull(nexusSlotSupplier);
 
     // All resource-based slot suppliers must use the same controller
     validateResourceController(workflowTaskSlotSupplier, activityTaskSlotSupplier);
     validateResourceController(workflowTaskSlotSupplier, localActivitySlotSupplier);
     validateResourceController(activityTaskSlotSupplier, localActivitySlotSupplier);
+    validateResourceController(workflowTaskSlotSupplier, nexusSlotSupplier);
   }
 
   @Nonnull
