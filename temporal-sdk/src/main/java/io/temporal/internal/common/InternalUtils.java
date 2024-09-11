@@ -56,6 +56,9 @@ public final class InternalUtils {
 
   public static WorkflowStub createNexusBoundStub(
       WorkflowStub stub, NexusStartWorkflowRequest request) {
+    if (stub.getOptions().isPresent()) {
+      throw new IllegalArgumentException("Options are not expected to be set on the stub");
+    }
     WorkflowOptions options = stub.getOptions().get();
     WorkflowOptions.Builder nexusWorkflowOptions =
         WorkflowOptions.newBuilder()

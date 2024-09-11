@@ -75,7 +75,8 @@ public final class WorkflowHandle<R> {
    */
   public static <A1, A2, A3> WorkflowHandle<Void> fromWorkflowMethod(
       Functions.Proc3<A1, A2, A3> workflow, A1 arg1, A2 arg2, A3 arg3) {
-    return new WorkflowHandle(new WorkflowMethodMethodInvoker(() -> workflow.apply(arg1, arg2, arg3)));
+    return new WorkflowHandle(
+        new WorkflowMethodMethodInvoker(() -> workflow.apply(arg1, arg2, arg3)));
   }
 
   /**
