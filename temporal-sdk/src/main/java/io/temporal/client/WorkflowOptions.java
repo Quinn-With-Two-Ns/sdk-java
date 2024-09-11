@@ -390,13 +390,13 @@ public final class WorkflowOptions {
     }
 
     /** Request ID. */
-    Builder setRequestID(String requestID) {
+    public Builder setRequestID(String requestID) {
       this.requestID = requestID;
       return this;
     }
 
     /** Workflow completion callback. */
-    Builder setCallbacks(List<Callback> callbacks) {
+    public Builder setCallbacks(List<Callback> callbacks) {
       this.callbacks = callbacks;
       return this;
     }

@@ -18,26 +18,26 @@
  * limitations under the License.
  */
 
-package io.temporal.client;
+package io.temporal.nexus;
 
-import io.nexusrpc.handler.OperationContext;
-import io.nexusrpc.handler.OperationStartDetails;
+import io.temporal.api.common.v1.WorkflowExecution;
+import io.temporal.internal.client.NexusStartWorkflowRequest;
+import io.temporal.internal.client.WorkflowClientInternal;
+import io.temporal.internal.nexus.CurrentNexusOperationContext;
+import io.temporal.internal.nexus.NexusOperationContextImpl;
 import io.temporal.workflow.Functions;
-import javax.annotation.Nullable;
 
-/**
- * Function interface for {@link
- * WorkflowRunNexusOperationHandler#fromWorkflowMethod(WorkflowMethodFactory)} representing the
- * workflow method to invoke for every operation call.
- */
-@FunctionalInterface
-public interface WorkflowMethodFactory<T, R> {
-  /**
-   * Invoked every operation start call and expected to return a workflow method reference to a
-   * proxy created through {@link WorkflowClient#newWorkflowStub(Class, WorkflowOptions)} using the
-   * provided {@link WorkflowClient}.
-   */
-  @Nullable
-  Functions.Func1<T, R> apply(
-      OperationContext context, OperationStartDetails details, WorkflowClient client, T input);
+class WorkflowMethodMethodInvoker implements WorkflowHandleInvoker {
+  private Functions.Proc workflow;
+
+  public WorkflowMethodMethodInvoker(Functions.Proc workflow) {
+    this.workflow = workflow;
+  }
+
+  @Override
+  public WorkflowExecution invoke(NexusStartWorkflowRequest request) {
+    NexusOperationContextImpl nexusCtx = CurrentNexusOperationContext.get();
+    return ((WorkflowClientInternal) nexusCtx.getWorkflowClient().getInternal())
+        .startNexus(request, workflow);
+  }
 }

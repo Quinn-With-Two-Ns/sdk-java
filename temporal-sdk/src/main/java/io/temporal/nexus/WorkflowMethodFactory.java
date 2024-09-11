@@ -18,25 +18,28 @@
  * limitations under the License.
  */
 
-package io.temporal.client;
+package io.temporal.nexus;
 
 import io.nexusrpc.handler.OperationContext;
 import io.nexusrpc.handler.OperationStartDetails;
-import io.temporal.api.common.v1.WorkflowExecution;
+import io.temporal.client.WorkflowClient;
+import io.temporal.client.WorkflowOptions;
+import io.temporal.workflow.Functions;
 import javax.annotation.Nullable;
 
 /**
  * Function interface for {@link
- * WorkflowRunNexusOperationHandler#fromWorkflowExecution(WorkflowExecutionFactory)} representing
- * the workflow execution to associate with each operation call.
+ * WorkflowRunNexusOperationHandler#fromWorkflowMethod(WorkflowMethodFactory)} representing the
+ * workflow method to invoke for every operation call.
  */
 @FunctionalInterface
-public interface WorkflowExecutionFactory<T> {
+public interface WorkflowMethodFactory<T, R> {
   /**
-   * Invoked every operation start call and expected to return a workflow execution to a workflow
-   * started through the provided {@link WorkflowClient}.
+   * Invoked every operation start call and expected to return a workflow method reference to a
+   * proxy created through {@link WorkflowClient#newWorkflowStub(Class, WorkflowOptions)} using the
+   * provided {@link WorkflowClient}.
    */
   @Nullable
-  WorkflowExecution apply(
+  Functions.Func1<T, R> apply(
       OperationContext context, OperationStartDetails details, WorkflowClient client, T input);
 }

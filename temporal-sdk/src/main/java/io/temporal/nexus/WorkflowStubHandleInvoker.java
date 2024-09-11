@@ -20,22 +20,23 @@
 
 package io.temporal.nexus;
 
-import io.nexusrpc.OperationUnsuccessfulException;
-import io.nexusrpc.handler.OperationContext;
-import io.nexusrpc.handler.OperationStartDetails;
-import io.temporal.client.WorkflowClient;
-import io.temporal.common.Experimental;
-import javax.annotation.Nullable;
+import static io.temporal.internal.common.InternalUtils.createNexusBoundStub;
 
-/**
- * Function interface for {@link OperationHandler#sync} representing a call made for every operation
- * call that takes a {@link WorkflowClient}.
- */
-@FunctionalInterface
-@Experimental
-public interface SynchronousOperationFunction<T, R> {
-  @Nullable
-  R apply(
-      OperationContext ctx, OperationStartDetails details, WorkflowClient client, @Nullable T input)
-      throws OperationUnsuccessfulException;
+import io.temporal.api.common.v1.WorkflowExecution;
+import io.temporal.client.WorkflowStub;
+import io.temporal.internal.client.NexusStartWorkflowRequest;
+
+class WorkflowStubHandleInvoker implements WorkflowHandleInvoker {
+  final Object[] args;
+  final WorkflowStub stub;
+
+  WorkflowStubHandleInvoker(WorkflowStub stub, Object[] args) {
+    this.args = args;
+    this.stub = stub;
+  }
+
+  @Override
+  public WorkflowExecution invoke(NexusStartWorkflowRequest request) {
+    return createNexusBoundStub(stub, request).start(args);
+  }
 }

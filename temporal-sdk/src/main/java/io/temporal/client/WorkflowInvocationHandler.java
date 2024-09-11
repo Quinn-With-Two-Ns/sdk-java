@@ -20,8 +20,9 @@
 
 package io.temporal.client;
 
+import static io.temporal.internal.common.InternalUtils.createNexusBoundStub;
+
 import com.google.common.base.Defaults;
-import com.google.common.base.Preconditions;
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.api.enums.v1.WorkflowIdReusePolicy;
 import io.temporal.common.CronSchedule;
@@ -31,6 +32,7 @@ import io.temporal.common.interceptors.WorkflowClientInterceptor;
 import io.temporal.common.metadata.POJOWorkflowInterfaceMetadata;
 import io.temporal.common.metadata.POJOWorkflowMethodMetadata;
 import io.temporal.common.metadata.WorkflowMethodType;
+import io.temporal.internal.client.NexusStartWorkflowRequest;
 import io.temporal.internal.sync.StubMarker;
 import io.temporal.workflow.QueryMethod;
 import io.temporal.workflow.SignalMethod;
@@ -423,10 +425,8 @@ class WorkflowInvocationHandler implements InvocationHandler {
         throw new IllegalArgumentException(
             "WorkflowClient.start can be called only on a method annotated with @WorkflowMethod");
       }
-      WorkflowOptions options = untyped.getOptions().get();
-      Preconditions.checkNotNull(options.getRequestID());
-      Preconditions.checkNotNull(options.getCallbacks());
-      result = untyped.start(args);
+
+      result = createNexusBoundStub(untyped, request).start(args);
     }
 
     @Override

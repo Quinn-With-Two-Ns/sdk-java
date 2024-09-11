@@ -20,22 +20,23 @@
 
 package io.temporal.nexus;
 
-import io.nexusrpc.OperationUnsuccessfulException;
 import io.nexusrpc.handler.OperationContext;
 import io.nexusrpc.handler.OperationStartDetails;
 import io.temporal.client.WorkflowClient;
-import io.temporal.common.Experimental;
 import javax.annotation.Nullable;
 
 /**
- * Function interface for {@link OperationHandler#sync} representing a call made for every operation
- * call that takes a {@link WorkflowClient}.
+ * Function interface for {@link
+ * WorkflowRunNexusOperationHandler#fromWorkflowHandle(WorkflowHandleFactory)} representing the
+ * workflow to associate with each operation call.
  */
 @FunctionalInterface
-@Experimental
-public interface SynchronousOperationFunction<T, R> {
+public interface WorkflowHandleFactory<T, R> {
+  /**
+   * Invoked every operation start call and expected to return a workflow handle to a workflow stub
+   * through the provided {@link WorkflowClient}.
+   */
   @Nullable
-  R apply(
-      OperationContext ctx, OperationStartDetails details, WorkflowClient client, @Nullable T input)
-      throws OperationUnsuccessfulException;
+  WorkflowHandle<R> apply(
+      OperationContext context, OperationStartDetails details, WorkflowClient client, T input);
 }

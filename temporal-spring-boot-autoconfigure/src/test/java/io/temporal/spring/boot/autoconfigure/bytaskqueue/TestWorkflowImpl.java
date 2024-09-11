@@ -22,6 +22,7 @@ package io.temporal.spring.boot.autoconfigure.bytaskqueue;
 
 import io.temporal.activity.ActivityOptions;
 import io.temporal.spring.boot.WorkflowImpl;
+import io.temporal.workflow.NexusServiceOptions;
 import io.temporal.workflow.Workflow;
 import java.time.Duration;
 
@@ -30,7 +31,8 @@ public class TestWorkflowImpl implements TestWorkflow {
   @Override
   public String execute(String input) {
     TestNexusService service =
-        Workflow.newNexusClient("test-endpoint-1000").newServiceStub(TestNexusService.class);
+        Workflow.newNexusServiceStub(
+            TestNexusService.class, NexusServiceOptions.newBuilder().build());
     return service.sayHello1("Hello")
         + Workflow.newActivityStub(
                 TestActivity.class,

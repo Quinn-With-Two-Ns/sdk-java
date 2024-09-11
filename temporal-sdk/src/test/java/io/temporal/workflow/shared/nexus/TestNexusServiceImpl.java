@@ -24,7 +24,8 @@ import io.nexusrpc.OperationUnsuccessfulException;
 import io.nexusrpc.handler.*;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
-import io.temporal.client.WorkflowRunNexusOperationHandler;
+import io.temporal.nexus.WorkflowHandle;
+import io.temporal.nexus.WorkflowRunNexusOperationHandler;
 import io.temporal.workflow.shared.TestWorkflows;
 
 @ServiceImpl(service = TestNexusService.class)
@@ -53,28 +54,27 @@ public class TestNexusServiceImpl {
   @OperationImpl
   public OperationHandler<Long, Void> sleep() {
     // Implemented via handler
-    return WorkflowRunNexusOperationHandler.fromWorkflowExecution(
+    return WorkflowRunNexusOperationHandler.fromWorkflowHandle(
         (OperationContext ctx, OperationStartDetails o, WorkflowClient c, Long input) -> {
           TestWorkflows.TestWorkflowLongArg workflow =
               c.newWorkflowStub(
                   TestWorkflows.TestWorkflowLongArg.class,
                   WorkflowOptions.newBuilder().setWorkflowId(o.getRequestId()).build());
-
-          return WorkflowClient.start(workflow::execute, input);
+          return WorkflowHandle.fromWorkflowMethod(workflow::execute, input);
         });
   }
 
   @OperationImpl
   public OperationHandler<Void, String> returnString() {
     // Implemented via handler
-    return WorkflowRunNexusOperationHandler.fromWorkflowExecution(
+    return WorkflowRunNexusOperationHandler.fromWorkflowHandle(
         (OperationContext ctx, OperationStartDetails o, WorkflowClient c, Void unused) -> {
           TestWorkflows.TestWorkflowReturnString workflow =
               c.newWorkflowStub(
                   TestWorkflows.TestWorkflowReturnString.class,
                   WorkflowOptions.newBuilder().setWorkflowId(o.getRequestId()).build());
 
-          return WorkflowClient.start(workflow::execute);
+          return WorkflowHandle.fromWorkflowMethod(workflow::execute);
         });
   }
 

@@ -18,11 +18,11 @@
  * limitations under the License.
  */
 
-package io.temporal.client;
+package io.temporal.internal.client;
 
 import java.util.Map;
 
-class NexusStartWorkflowRequest {
+public final class NexusStartWorkflowRequest {
   private final String requestId;
   private final String callbackUrl;
   private final Map<String, String> callbackHeaders;

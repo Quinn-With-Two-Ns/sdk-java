@@ -37,6 +37,7 @@ import io.temporal.common.WorkflowExecutionHistory;
 import io.temporal.common.interceptors.WorkflowClientCallsInterceptor;
 import io.temporal.common.interceptors.WorkflowClientInterceptor;
 import io.temporal.internal.WorkflowThreadMarker;
+import io.temporal.internal.client.NexusStartWorkflowRequest;
 import io.temporal.internal.client.RootWorkflowClientInvoker;
 import io.temporal.internal.client.WorkerFactoryRegistry;
 import io.temporal.internal.client.WorkflowClientInternal;
@@ -568,12 +569,12 @@ final class WorkflowClientInternalImpl implements WorkflowClient, WorkflowClient
     workerFactoryRegistry.deregister(workerFactory);
   }
 
-  static <A1, R> WorkflowExecution startNexus(
-      NexusStartWorkflowRequest request, Functions.Func1<A1, R> workflow, A1 arg) {
+  @Override
+  public WorkflowExecution startNexus(NexusStartWorkflowRequest request, Functions.Proc workflow) {
     enforceNonWorkflowThread();
     WorkflowInvocationHandler.initAsyncInvocation(InvocationType.START_NEXUS, request);
     try {
-      workflow.apply(arg);
+      workflow.apply();
       return WorkflowInvocationHandler.getAsyncInvocationResult(WorkflowExecution.class);
     } finally {
       WorkflowInvocationHandler.closeAsyncInvocation();

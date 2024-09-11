@@ -25,8 +25,13 @@ import io.temporal.common.Experimental;
 import io.temporal.internal.nexus.CurrentNexusOperationContext;
 import io.temporal.internal.nexus.NexusOperationContextImpl;
 
+/**
+ * Helper to create {@link io.nexusrpc.handler.OperationHandler} instances that take a {@link
+ * io.temporal.client.WorkflowClient}.
+ */
 @Experimental
 public final class OperationHandler {
+  /** Invoked every operation start call and expected to return a fixed/synchronous result. */
   public static <T, R> io.nexusrpc.handler.OperationHandler<T, R> sync(
       SynchronousOperationFunction<T, R> func) {
     return io.nexusrpc.handler.OperationHandler.sync(
