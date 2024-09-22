@@ -22,6 +22,7 @@ package io.temporal.spring.boot.autoconfigure.template;
 
 import com.google.common.base.Preconditions;
 import io.nexusrpc.ServiceDefinition;
+import io.nexusrpc.handler.ServiceImplInstance;
 import io.opentracing.Tracer;
 import io.temporal.client.WorkflowClient;
 import io.temporal.common.Experimental;
@@ -402,7 +403,7 @@ public class WorkersTemplate implements BeanFactoryAware, EnvironmentAware {
                 worker,
                 beanName,
                 bean.getClass().getName(),
-                ServiceDefinition.fromClass(AopUtils.getTargetClass(bean)));
+                ServiceImplInstance.fromInstance(AopUtils.getTargetClass(bean)).getDefinition());
           });
     }
   }
@@ -451,7 +452,10 @@ public class WorkersTemplate implements BeanFactoryAware, EnvironmentAware {
     try {
       worker.registerNexusServiceImplementation(bean);
       addRegisteredNexusServiceImpl(
-          worker, beanName, bean.getClass().getName(), ServiceDefinition.fromClass(targetClass));
+          worker,
+          beanName,
+          bean.getClass().getName(),
+          ServiceImplInstance.fromInstance(bean).getDefinition());
       if (log.isInfoEnabled()) {
         log.info(
             "Registering auto-discovered nexus service bean '{}' of class {} on a worker {} with a task queue '{}'",

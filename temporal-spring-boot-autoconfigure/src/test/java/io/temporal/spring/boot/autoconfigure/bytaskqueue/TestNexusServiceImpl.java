@@ -32,14 +32,8 @@ import org.springframework.stereotype.Component;
 public class TestNexusServiceImpl {
 
   @OperationImpl
-  public OperationHandler<String, String> sayHello1() {
+  public OperationHandler<String, String> operation() {
     // Implemented inline
-    return OperationHandler.sync((ctx, details, name) -> "Hello, " + name + "!");
-  }
-
-  @OperationImpl
-  public OperationHandler<String, String> sayHello2() {
-    // Implemented via handler
     return OperationHandler.sync((ctx, details, name) -> "Hello, " + name + "!");
   }
 }
