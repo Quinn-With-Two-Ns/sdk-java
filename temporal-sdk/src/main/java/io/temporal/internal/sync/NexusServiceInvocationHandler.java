@@ -35,7 +35,7 @@ public class NexusServiceInvocationHandler implements InvocationHandler {
 
   private final ServiceDefinition serviceDef;
 
-  NexusServiceInvocationHandler(
+  public NexusServiceInvocationHandler(
       ServiceDefinition serviceDef,
       NexusServiceOptions options,
       WorkflowOutboundCallsInterceptor outboundCallsInterceptor,
