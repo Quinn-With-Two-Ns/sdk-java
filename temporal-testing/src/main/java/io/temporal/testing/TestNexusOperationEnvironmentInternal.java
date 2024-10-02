@@ -12,6 +12,7 @@ import io.temporal.api.workflowservice.v1.*;
 import io.temporal.client.WorkflowClient;
 import io.temporal.common.converter.DataConverter;
 import io.temporal.common.interceptors.WorkflowOutboundCallsInterceptorBase;
+import io.temporal.failure.ApplicationFailure;
 import io.temporal.failure.NexusOperationFailure;
 import io.temporal.internal.common.ProtobufTimeUtils;
 import io.temporal.internal.nexus.NexusTaskHandlerImpl;
@@ -34,7 +35,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,36 +59,33 @@ final class TestNexusOperationEnvironmentInternal implements TestNexusOperationE
   private final WorkflowServiceStubs workflowServiceStubs;
   private final AtomicBoolean started = new AtomicBoolean();
 
-
-
   public TestNexusOperationEnvironmentInternal(TestEnvironmentOptions options) {
     // Initialize an in-memory mock service.
-    this.mockServer =
-            new InProcessGRPCServer(Collections.singletonList(new TestActivityEnvironmentInternal.HeartbeatInterceptingService()));
+    this.mockServer = new InProcessGRPCServer(Collections.EMPTY_LIST);
     this.testEnvironmentOptions =
-            options != null
-                    ? TestEnvironmentOptions.newBuilder(options).validateAndBuildWithDefaults()
-                    : TestEnvironmentOptions.newBuilder().validateAndBuildWithDefaults();
+        options != null
+            ? TestEnvironmentOptions.newBuilder(options).validateAndBuildWithDefaults()
+            : TestEnvironmentOptions.newBuilder().validateAndBuildWithDefaults();
     WorkflowServiceStubsOptions.Builder serviceStubsOptionsBuilder =
-            WorkflowServiceStubsOptions.newBuilder(
-                            testEnvironmentOptions.getWorkflowServiceStubsOptions())
-                    .setTarget(null)
-                    .setChannel(this.mockServer.getChannel())
-                    .setRpcQueryTimeout(Duration.ofSeconds(60));
+        WorkflowServiceStubsOptions.newBuilder(
+                testEnvironmentOptions.getWorkflowServiceStubsOptions())
+            .setTarget(null)
+            .setChannel(this.mockServer.getChannel())
+            .setRpcQueryTimeout(Duration.ofSeconds(60));
     Scope metricsScope = this.testEnvironmentOptions.getMetricsScope();
     if (metricsScope != null && !(NoopScope.class.equals(metricsScope.getClass()))) {
       serviceStubsOptionsBuilder.setMetricsScope(metricsScope);
     }
     this.workflowServiceStubs =
-            WorkflowServiceStubs.newServiceStubs(serviceStubsOptionsBuilder.build());
+        WorkflowServiceStubs.newServiceStubs(serviceStubsOptionsBuilder.build());
 
     nexusTaskHandler =
         new NexusTaskHandlerImpl(
-                WorkflowClient.newInstance(this.workflowServiceStubs),
+            WorkflowClient.newInstance(this.workflowServiceStubs),
             testEnvironmentOptions.getWorkflowClientOptions().getNamespace(),
             "test-nexus-env-task-queue",
             testEnvironmentOptions.getWorkflowClientOptions().getDataConverter(),
-                testEnvironmentOptions.getWorkerFactoryOptions().getWorkerInterceptors());
+            testEnvironmentOptions.getWorkerFactoryOptions().getWorkerInterceptors());
   }
 
   @Override
@@ -110,7 +107,7 @@ final class TestNexusOperationEnvironmentInternal implements TestNexusOperationE
 
   @Override
   public <T> T newNexusServiceStub(Class<T> serviceInterface, NexusServiceOptions options) {
-    Preconditions.checkState(started.get(), "TestNexusOperationEnvironmentInternal not started");
+    Preconditions.checkState(started.get(), "TestNexusOperationEnvironment not started");
 
     ServiceDefinition serviceDef = ServiceDefinition.fromClass(serviceInterface);
     InvocationHandler invocationHandler =
@@ -219,26 +216,45 @@ final class TestNexusOperationEnvironmentInternal implements TestNexusOperationE
         } else {
           UnsuccessfulOperationError opError = startResponse.getOperationError();
           throw new NexusOperationFailure(
-              "",
+              "nexus operation completed unsuccessfully",
               0,
               TEST_ENDPOINT,
               task.getRequest().getStartOperation().getService(),
               task.getRequest().getStartOperation().getOperation(),
               task.getRequest().getStartOperation().getRequestId(),
-              new RuntimeException(opError.getFailure().getMessage()));
+              ApplicationFailure.newNonRetryableFailure(
+                  opError.getFailure().getMessage(), "NexusOperationFailure"));
         }
       } else {
-        HandlerError error = taskResult.getHandlerError();
+        HandlerError handleError = taskResult.getHandlerError();
         StartOperationRequest re = task.getRequest().getStartOperation();
+        ApplicationFailure applicationFailure =
+            ApplicationFailure.newFailure(
+                handleError.getFailure().getMessage(), "NexusOperationFailure");
+        if (isNonRetryable(handleError.getErrorType())) {
+          applicationFailure.setNonRetryable(true);
+        }
         throw new NexusOperationFailure(
-            "",
+            "nexus operation completed unsuccessfully",
             0,
             TEST_ENDPOINT,
             re.getService(),
             re.getOperation(),
             re.getRequestId(),
-            new RuntimeException(error.getFailure().getMessage()));
+            applicationFailure);
       }
+    }
+  }
+
+  private boolean isNonRetryable(String f) {
+    switch (f) {
+      case "BAD_REQUEST":
+      case "UNAUTHENTICATED":
+      case "UNAUTHORIZED":
+      case "NOT_FOUND":
+        return true;
+      default:
+        return false;
     }
   }
 }

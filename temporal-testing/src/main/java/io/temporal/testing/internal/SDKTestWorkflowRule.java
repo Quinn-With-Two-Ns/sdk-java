@@ -74,7 +74,7 @@ import org.slf4j.LoggerFactory;
  * Intended to be used only in the Java SDK test code. This Rule duplicates {@link TestWorkflowRule}
  * and provides additional convenience methods for SDK development
  */
-public class SDKTestWorkflowRule implements TestRule {
+public final class SDKTestWorkflowRule implements TestRule {
   private static final Logger log = LoggerFactory.getLogger(SDKTestWorkflowRule.class);
 
   private static final long DEFAULT_TEST_TIMEOUT_SECONDS = 10;
@@ -440,7 +440,7 @@ public class SDKTestWorkflowRule implements TestRule {
     }
   }
 
-  protected void shutdown() throws Throwable {
+  void shutdown() throws Throwable {
     getTestEnvironment().shutdown();
 
     TracingWorkerInterceptor tracer = getInterceptor(TracingWorkerInterceptor.class);

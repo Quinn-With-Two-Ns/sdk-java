@@ -6,6 +6,7 @@ import io.nexusrpc.OperationUnsuccessfulException;
 import io.nexusrpc.handler.OperationHandler;
 import io.nexusrpc.handler.OperationImpl;
 import io.nexusrpc.handler.ServiceImpl;
+import io.temporal.failure.ApplicationFailure;
 import io.temporal.failure.NexusOperationFailure;
 import io.temporal.testing.TestNexusOperationEnvironment;
 import io.temporal.workflow.shared.TestNexusServices;
@@ -65,8 +66,10 @@ public class NexusTestingTest {
     testEnvironment.start();
     TestNexusServices.TestNexusService1 service =
         testEnvironment.newNexusServiceStub(TestNexusServices.TestNexusService1.class);
-    NexusOperationFailure ex =
+    NexusOperationFailure nexusFailure =
         Assert.assertThrows(NexusOperationFailure.class, () -> service.operation("world"));
-    System.out.println(ex);
+    Assert.assertTrue(nexusFailure.getCause() instanceof ApplicationFailure);
+    ApplicationFailure applicationFailure = (ApplicationFailure) nexusFailure.getCause();
+    Assert.assertEquals("test failure", applicationFailure.getOriginalMessage());
   }
 }

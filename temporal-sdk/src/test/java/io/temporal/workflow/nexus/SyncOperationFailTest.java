@@ -41,6 +41,7 @@ public class SyncOperationFailTest {
       SDKTestWorkflowRule.newBuilder()
           .setWorkflowTypes(TestNexus.class)
           .setNexusServiceImplementation(new TestNexusServiceImpl())
+          .setUseExternalService(true)
           .build();
 
   @Test
