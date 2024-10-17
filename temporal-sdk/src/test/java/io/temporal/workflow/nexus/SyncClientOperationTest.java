@@ -34,6 +34,7 @@ import io.temporal.nexus.Nexus;
 import io.temporal.nexus.WorkflowClientOperationHandlers;
 import io.temporal.serviceclient.MetricsTag;
 import io.temporal.testing.internal.SDKTestWorkflowRule;
+import io.temporal.testing.internal.TracingWorkerInterceptor;
 import io.temporal.worker.MetricsType;
 import io.temporal.worker.WorkerMetricsTag;
 import io.temporal.workflow.*;
@@ -62,8 +63,15 @@ public class SyncClientOperationTest {
   public void syncClientOperationSuccess() {
     TestUpdatedWorkflow workflowStub =
         testWorkflowRule.newWorkflowStubTimeoutOptions(TestUpdatedWorkflow.class);
-    Assert.assertTrue(workflowStub.execute(false).startsWith("Update ID:"));
-
+    Assert.assertTrue(workflowStub.execute().startsWith("Update ID:"));
+    testWorkflowRule
+        .getInterceptor(TracingWorkerInterceptor.class)
+        .setExpected(
+            "interceptExecuteWorkflow " + SDKTestWorkflowRule.UUID_REGEXP,
+            "registerUpdateHandler update",
+            "newThread workflow-method",
+            "executeNexusOperation TestNexusService1.operation",
+            "startNexusOperation TestNexusService1.operation");
     // Test metrics all tasks should have
     Map<String, String> nexusWorkerTags =
         ImmutableMap.<String, String>builder()

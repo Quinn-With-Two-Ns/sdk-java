@@ -21,41 +21,18 @@
 package io.temporal.internal.nexus;
 
 import com.uber.m3.tally.Scope;
-import io.temporal.client.WorkflowClient;
 import io.temporal.common.interceptors.NexusOperationOutboundCallsInterceptor;
-import io.temporal.nexus.NexusOperationContext;
 
-public class NexusOperationContextImpl implements NexusOperationContext {
-  private final String namespace;
-  private final NexusOperationOutboundCallsInterceptor outbound;
-  private final String taskQueue;
-  private final WorkflowClient client;
+public class RootNexusOperationOutboundCallsInterceptor
+    implements NexusOperationOutboundCallsInterceptor {
+  private final Scope scope;
 
-  public NexusOperationContextImpl(
-      String namespace,
-      String taskQueue,
-      NexusOperationOutboundCallsInterceptor outbound,
-      WorkflowClient client) {
-    this.namespace = namespace;
-    this.taskQueue = taskQueue;
-    this.outbound = outbound;
-    this.client = client;
+  RootNexusOperationOutboundCallsInterceptor(Scope scope) {
+    this.scope = scope;
   }
 
   @Override
   public Scope getMetricsScope() {
-    return outbound.getMetricsScope();
-  }
-
-  public WorkflowClient getWorkflowClient() {
-    return client;
-  }
-
-  public String getTaskQueue() {
-    return taskQueue;
-  }
-
-  public String getNamespace() {
-    return namespace;
+    return scope;
   }
 }

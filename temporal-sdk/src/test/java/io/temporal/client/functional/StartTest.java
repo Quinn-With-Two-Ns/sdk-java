@@ -29,6 +29,7 @@ import io.temporal.api.history.v1.WorkflowExecutionStartedEventAttributes;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.client.WorkflowStub;
+import io.temporal.common.SearchAttributes;
 import io.temporal.common.WorkflowExecutionHistory;
 import io.temporal.internal.common.ProtobufTimeUtils;
 import io.temporal.testing.internal.SDKTestOptions;
@@ -53,6 +54,7 @@ public class StartTest {
     WorkflowOptions workflowOptions =
         SDKTestOptions.newWorkflowOptionsWithTimeouts(testWorkflowRule.getTaskQueue()).toBuilder()
             .setStartDelay(Duration.ofSeconds(5))
+                .setTypedSearchAttributes(SearchAttributes.EMPTY)
             .build();
     TestNoArgsWorkflowFunc stubF =
         testWorkflowRule

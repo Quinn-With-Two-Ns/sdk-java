@@ -33,6 +33,8 @@ import io.temporal.api.nexus.v1.*;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowException;
 import io.temporal.common.converter.DataConverter;
+import io.temporal.common.interceptors.NexusOperationInboundCallsInterceptor;
+import io.temporal.common.interceptors.WorkerInterceptor;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.internal.common.NexusUtil;
 import io.temporal.internal.worker.NexusTask;
@@ -46,6 +48,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,13 +62,19 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
   private final Map<String, ServiceImplInstance> serviceImplInstances =
       Collections.synchronizedMap(new HashMap<>());
   private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+  private final WorkerInterceptor[] interceptors;
 
   public NexusTaskHandlerImpl(
-      WorkflowClient client, String namespace, String taskQueue, DataConverter dataConverter) {
-    this.client = client;
-    this.namespace = namespace;
-    this.taskQueue = taskQueue;
-    this.dataConverter = dataConverter;
+      @Nonnull WorkflowClient client,
+      @Nonnull String namespace,
+      @Nonnull String taskQueue,
+      @Nonnull DataConverter dataConverter,
+      @Nonnull WorkerInterceptor[] interceptors) {
+    this.client = Objects.requireNonNull(client);
+    this.namespace = Objects.requireNonNull(namespace);
+    this.taskQueue = Objects.requireNonNull(taskQueue);
+    this.dataConverter = Objects.requireNonNull(dataConverter);
+    this.interceptors = Objects.requireNonNull(interceptors);
   }
 
   @Override
@@ -76,6 +85,16 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
     ServiceHandler.Builder serviceHandlerBuilder =
         ServiceHandler.newBuilder().setSerializer(new PayloadSerializer(dataConverter));
     serviceImplInstances.forEach((name, instance) -> serviceHandlerBuilder.addInstance(instance));
+    serviceImplInstances.setInterceptor(
+        () -> {
+          NexusOperationInboundCallsInterceptor inboundCallsInterceptor =
+              new RootNexusOperationInboundCallsInterceptor(serviceHandler);
+          for (WorkerInterceptor interceptor : interceptors) {
+            inboundCallsInterceptor = interceptor.interceptNexusOperation(inboundCallsInterceptor);
+          }
+          inboundCallsInterceptor.init(new RootNexusOperationOutboundCallsInterceptor(null));
+          return inboundCallsInterceptor;
+        });
     serviceHandler = serviceHandlerBuilder.build();
     return true;
   }
@@ -118,17 +137,29 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
         }
       }
 
+      RootNexusOperationInboundCallsInterceptor rootInboundNexusInboundCallsInterceptor =
+          new RootNexusOperationInboundCallsInterceptor(serviceHandler);
+      NexusOperationInboundCallsInterceptor inboundCallsInterceptor =
+          rootInboundNexusInboundCallsInterceptor;
+      for (WorkerInterceptor interceptor : interceptors) {
+        inboundCallsInterceptor = interceptor.interceptNexusOperation(inboundCallsInterceptor);
+      }
+      inboundCallsInterceptor.init(new RootNexusOperationOutboundCallsInterceptor(metricsScope));
       CurrentNexusOperationContext.set(
-          new NexusOperationContextImpl(namespace, taskQueue, client, metricsScope));
+          new NexusOperationContextImpl(
+              namespace,
+              taskQueue,
+              rootInboundNexusInboundCallsInterceptor.getOutboundCalls(),
+              client));
 
       switch (request.getVariantCase()) {
         case START_OPERATION:
           StartOperationResponse startResponse =
-              handleStartOperation(ctx, request.getStartOperation());
+              handleStartOperation(ctx, inboundCallsInterceptor, request.getStartOperation());
           return new Result(Response.newBuilder().setStartOperation(startResponse).build());
         case CANCEL_OPERATION:
           CancelOperationResponse cancelResponse =
-              handleCancelledOperation(ctx, request.getCancelOperation());
+              handleCancelledOperation(ctx, inboundCallsInterceptor, request.getCancelOperation());
           return new Result(Response.newBuilder().setCancelOperation(cancelResponse).build());
         default:
           return new Result(
@@ -176,9 +207,13 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
     return failure.build();
   }
 
-  private void cancelOperation(OperationContext context, OperationCancelDetails details) {
+  private void cancelOperation(
+      OperationContext context,
+      NexusOperationInboundCallsInterceptor inbound,
+      OperationCancelDetails details) {
     try {
-      serviceHandler.cancelOperation(context, details);
+      inbound.cancelOperation(
+          new NexusOperationInboundCallsInterceptor.CancelOperationInput(context, details));
     } catch (Throwable e) {
       Throwable failure = CheckedExceptionWrapper.unwrap(e);
       log.warn(
@@ -192,13 +227,15 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
   }
 
   private CancelOperationResponse handleCancelledOperation(
-      OperationContext.Builder ctx, CancelOperationRequest task) {
+      OperationContext.Builder ctx,
+      NexusOperationInboundCallsInterceptor inbound,
+      CancelOperationRequest task) {
     ctx.setService(task.getService()).setOperation(task.getOperation());
 
     OperationCancelDetails operationCancelDetails =
         OperationCancelDetails.newBuilder().setOperationId(task.getOperationId()).build();
     try {
-      cancelOperation(ctx.build(), operationCancelDetails);
+      cancelOperation(ctx.build(), inbound, operationCancelDetails);
     } catch (Throwable failure) {
       convertKnownFailures(failure);
     }
@@ -227,10 +264,17 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
   }
 
   private OperationStartResult<HandlerResultContent> startOperation(
-      OperationContext context, OperationStartDetails details, HandlerInputContent input)
+      NexusOperationInboundCallsInterceptor inbound,
+      OperationContext context,
+      OperationStartDetails details,
+      HandlerInputContent input)
       throws OperationUnsuccessfulException {
     try {
-      return serviceHandler.startOperation(context, details, input);
+      return inbound
+          .startOperation(
+              new NexusOperationInboundCallsInterceptor.StartOperationInput(
+                  context, details, input))
+          .getResult();
     } catch (Throwable e) {
       Throwable ex = CheckedExceptionWrapper.unwrap(e);
       log.warn(
@@ -244,7 +288,9 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
   }
 
   private StartOperationResponse handleStartOperation(
-      OperationContext.Builder ctx, StartOperationRequest task) {
+      OperationContext.Builder ctx,
+      NexusOperationInboundCallsInterceptor inbound,
+      StartOperationRequest task) {
     ctx.setService(task.getService()).setOperation(task.getOperation());
 
     OperationStartDetails.Builder operationStartDetails =
@@ -272,7 +318,7 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
     StartOperationResponse.Builder startResponseBuilder = StartOperationResponse.newBuilder();
     try {
       OperationStartResult<HandlerResultContent> result =
-          startOperation(ctx.build(), operationStartDetails.build(), input.build());
+          startOperation(inbound, ctx.build(), operationStartDetails.build(), input.build());
       if (result.isSync()) {
         startResponseBuilder.setSyncSuccess(
             StartOperationResponse.Sync.newBuilder()
