@@ -87,12 +87,13 @@ public class AsyncWorkflowOperationTest extends BaseNexusTest {
           Workflow.startNexusOperation(serviceStub::operation, "block");
       NexusOperationExecution asyncExec = asyncOpHandle.getExecution().get();
       // Execution id is present for an asynchronous operations
-      Assert.assertTrue("Operation id should be present", asyncExec.getOperationId().isPresent());
+      Assert.assertTrue(
+          "Operation token should be present", asyncExec.getOperationToken().isPresent());
       // Result should only be completed if the operation is completed
       Assert.assertFalse("Result should not be completed", asyncOpHandle.getResult().isCompleted());
-      Assert.assertTrue(asyncExec.getOperationId().get().startsWith(WORKFLOW_ID_PREFIX));
+      Assert.assertTrue(asyncExec.getOperationToken().get().startsWith(WORKFLOW_ID_PREFIX));
       // Unblock the operation
-      Workflow.newExternalWorkflowStub(OperationWorkflow.class, asyncExec.getOperationId().get())
+      Workflow.newExternalWorkflowStub(OperationWorkflow.class, asyncExec.getOperationToken().get())
           .unblock();
       // Wait for the operation to complete
       Assert.assertEquals("Hello from operation workflow block", asyncOpHandle.getResult().get());
@@ -102,7 +103,7 @@ public class AsyncWorkflowOperationTest extends BaseNexusTest {
       } catch (NexusOperationFailure e) {
         Assert.assertEquals("TestNexusService1", e.getService());
         Assert.assertEquals("operation", e.getOperation());
-        Assert.assertTrue(e.getOperationId().startsWith(WORKFLOW_ID_PREFIX));
+        Assert.assertTrue(e.getOperationToken().startsWith(WORKFLOW_ID_PREFIX));
         Assert.assertTrue(e.getCause() instanceof ApplicationFailure);
         ApplicationFailure applicationFailure = (ApplicationFailure) e.getCause();
         Assert.assertEquals("simulated failure", applicationFailure.getOriginalMessage());

@@ -83,7 +83,7 @@ public class TerminateWorkflowAsyncOperationTest {
       NexusOperationHandle<String> handle =
           Workflow.startNexusOperation(serviceStub::operation, "block");
       // Wait for the operation to start
-      String workflowId = handle.getExecution().get().getOperationId().get();
+      String workflowId = handle.getExecution().get().getOperationToken().get();
       // Terminate the operation
       serviceStub.terminate(workflowId);
       // Try to get the result, expect this to throw

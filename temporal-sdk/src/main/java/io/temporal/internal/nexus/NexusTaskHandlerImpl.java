@@ -194,27 +194,29 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
     ctx.setService(task.getService()).setOperation(task.getOperation());
 
     OperationCancelDetails operationCancelDetails =
-        OperationCancelDetails.newBuilder().setOperationId(task.getOperationId()).build();
+        OperationCancelDetails.newBuilder()
+            .setOperationToken(
+                task.getOperationToken().isEmpty()
+                    ? task.getOperationId()
+                    : task.getOperationToken())
+            .build();
     try {
       cancelOperation(ctx.build(), operationCancelDetails);
     } catch (Throwable failure) {
-      // FIX BEFORE MERGED - Right now the Go SDK is returning operation errors for cancel
-      // operations
-      // convertKnownFailures(failure);
-      throw failure;
+      convertKnownFailures(failure);
     }
 
     return CancelOperationResponse.newBuilder().build();
   }
 
-  private void convertKnownFailures(Throwable e) throws OperationException {
+  private void convertKnownFailures(Throwable e) {
     Throwable failure = CheckedExceptionWrapper.unwrap(e);
     if (failure instanceof WorkflowException) {
-      throw OperationException.failure(failure);
+      throw new HandlerException(HandlerException.ErrorType.BAD_REQUEST, failure);
     }
     if (failure instanceof ApplicationFailure) {
       if (((ApplicationFailure) failure).isNonRetryable()) {
-        throw OperationException.failure(failure);
+        throw new HandlerException(HandlerException.ErrorType.BAD_REQUEST, failure);
       }
     }
     if (failure instanceof Error) {
@@ -268,10 +270,11 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
         HandlerInputContent.newBuilder().setDataStream(task.getPayload().toByteString().newInput());
 
     StartOperationResponse.Builder startResponseBuilder = StartOperationResponse.newBuilder();
+    OperationContext context = ctx.build();
     try {
       try {
         OperationStartResult<HandlerResultContent> result =
-            startOperation(ctx.build(), operationStartDetails.build(), input.build());
+            startOperation(context, operationStartDetails.build(), input.build());
         if (result.isSync()) {
           startResponseBuilder.setSyncSuccess(
               StartOperationResponse.Sync.newBuilder()
@@ -280,9 +283,10 @@ public class NexusTaskHandlerImpl implements NexusTaskHandler {
         } else {
           startResponseBuilder.setAsyncSuccess(
               StartOperationResponse.Async.newBuilder()
-                  .setOperationId(result.getAsyncOperationId())
+                  .setOperationId(result.getAsyncOperationToken())
+                  .setOperationToken(result.getAsyncOperationToken())
                   .addAllLinks(
-                      result.getLinks().stream()
+                      context.getLinks().stream()
                           .map(
                               link ->
                                   io.temporal.api.nexus.v1.Link.newBuilder()

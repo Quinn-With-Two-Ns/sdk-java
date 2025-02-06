@@ -75,7 +75,7 @@ class RunWorkflowOperation<T, R> implements OperationHandler<T, R> {
       OperationStartResult.Builder<R> result =
           OperationStartResult.<R>newAsyncBuilder(workflowExec.getWorkflowId());
       if (nexusLink != null) {
-        result.addLink(nexusProtoLinkToLink(nexusLink));
+        ctx.addLinks(nexusProtoLinkToLink(nexusLink));
       }
       return result.build();
     } catch (URISyntaxException e) {
@@ -100,6 +100,6 @@ class RunWorkflowOperation<T, R> implements OperationHandler<T, R> {
   public void cancel(
       OperationContext operationContext, OperationCancelDetails operationCancelDetails) {
     WorkflowClient client = CurrentNexusOperationContext.get().getWorkflowClient();
-    client.newUntypedWorkflowStub(operationCancelDetails.getOperationId()).cancel();
+    client.newUntypedWorkflowStub(operationCancelDetails.getOperationToken()).cancel();
   }
 }

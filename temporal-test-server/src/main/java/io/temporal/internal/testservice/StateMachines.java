@@ -752,6 +752,7 @@ class StateMachines {
             .setNexusOperationStartedEventAttributes(
                 NexusOperationStartedEventAttributes.newBuilder()
                     .setOperationId(resp.getOperationId())
+                    .setOperationToken(resp.getOperationToken())
                     .setScheduledEventId(data.scheduledEventId)
                     .setRequestId(data.scheduledEvent.getRequestId()));
 
@@ -876,6 +877,7 @@ class StateMachines {
             .build());
     return FAILED;
   }
+
   private static boolean isRetryableHandlerError(HandlerException.ErrorType errorType) {
     switch (errorType) {
       case BAD_REQUEST:
