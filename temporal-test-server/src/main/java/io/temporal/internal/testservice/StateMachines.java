@@ -878,23 +878,6 @@ class StateMachines {
     return FAILED;
   }
 
-  private static boolean isRetryableHandlerError(HandlerException.ErrorType errorType) {
-    switch (errorType) {
-      case BAD_REQUEST:
-      case UNAUTHORIZED:
-      case UNAUTHENTICATED:
-      case NOT_FOUND:
-      case NOT_IMPLEMENTED:
-        return false;
-      case RESOURCE_EXHAUSTED:
-      case INTERNAL:
-      case UNAVAILABLE:
-      case UPSTREAM_TIMEOUT:
-      default:
-        return true;
-    }
-  }
-
   private static RetryState attemptNexusOperationRetry(
       RequestContext ctx, Optional<Failure> failure, NexusOperationData data) {
     Optional<ApplicationFailureInfo> info = failure.map(Failure::getApplicationFailureInfo);
@@ -911,7 +894,20 @@ class StateMachines {
 
     if (failure.get().hasNexusHandlerFailureInfo()) {
       NexusHandlerFailureInfo handlerFailure = failure.get().getNexusHandlerFailureInfo();
-      if (!isRetryableHandlerError(HandlerException.ErrorType.valueOf(handlerFailure.getType()))) {
+      HandlerException.RetryBehavior retryBehavior = HandlerException.RetryBehavior.UNSPECIFIED;
+      switch (handlerFailure.getRetryBehavior()) {
+        case NEXUS_HANDLER_ERROR_RETRY_BEHAVIOR_NON_RETRYABLE:
+          retryBehavior = HandlerException.RetryBehavior.NON_RETRYABLE;
+          break;
+        case NEXUS_HANDLER_ERROR_RETRY_BEHAVIOR_RETRYABLE:
+          retryBehavior = HandlerException.RetryBehavior.RETRYABLE;
+          break;
+      }
+      // Deserialize the HandlerFailure to a HandlerException to check if it is retryable, we do not
+      // need to convert
+      // the whole error chain, so we don't pass cause.
+      HandlerException he = new HandlerException(handlerFailure.getType(), null, retryBehavior);
+      if (!he.isRetryable()) {
         return RetryState.RETRY_STATE_NON_RETRYABLE_FAILURE;
       }
     }
