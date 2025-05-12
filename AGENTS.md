@@ -88,3 +88,5 @@ To test the SDK run:
 ```bash
 ./gradlew temporal-sdk:test 
 ```
+
+running all tests can take a long time
