@@ -79,7 +79,7 @@ For more details see `CONTRIBUTING.md` in the repository root.
    ```bash
    ./gradlew --offline spotlessApply
    ```
-2. Run the tests. A full build requires a local Temporal Server instance.
+2. Run the tests. This can take a long time so you may prefer to run individual tests.
    ```bash
    ./gradlew test
    ```
@@ -94,8 +94,7 @@ For more details see `CONTRIBUTING.md` in the repository root.
    ```
 
 ## Tests
-- Tests use JUnit4 and are located under
-  `temporal-sdk/src/test/java/io/temporal`.
+- All tests for this each package is located in `$PACKAGE_NAME/src/test/java/io/temporal`, where `$PACKAGE_NAME` is the name of the package
 - Workflow API tests should rely on `SDKTestWorkflowRule` to create a worker and
   register workflows, activities, and nexus services.
 
