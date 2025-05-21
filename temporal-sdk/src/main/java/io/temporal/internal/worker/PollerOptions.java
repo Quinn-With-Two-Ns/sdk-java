@@ -121,7 +121,7 @@ public final class PollerOptions {
       return this;
     }
 
-    /** Number of parallel polling threads. */
+    /** Set poller behavior. */
     public Builder setPollerBehavior(PollerBehavior pollerBehavior) {
       this.pollerBehavior = pollerBehavior;
       return this;

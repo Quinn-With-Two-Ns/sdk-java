@@ -2,7 +2,6 @@ package io.temporal.internal.worker;
 
 import static io.temporal.serviceclient.MetricsTag.METRICS_TAGS_CALL_OPTIONS_KEY;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.Timestamp;
 import com.uber.m3.tally.Scope;
 import io.temporal.api.common.v1.WorkerVersionCapabilities;
@@ -10,6 +9,7 @@ import io.temporal.api.taskqueue.v1.TaskQueue;
 import io.temporal.api.workflowservice.v1.GetSystemInfoResponse;
 import io.temporal.api.workflowservice.v1.PollNexusTaskQueueRequest;
 import io.temporal.api.workflowservice.v1.PollNexusTaskQueueResponse;
+import io.temporal.internal.common.GrpcUtils;
 import io.temporal.internal.common.ProtobufTimeUtils;
 import io.temporal.serviceclient.MetricsTag;
 import io.temporal.serviceclient.WorkflowServiceStubs;
@@ -19,8 +19,6 @@ import io.temporal.worker.tuning.SlotPermit;
 import io.temporal.worker.tuning.SlotReleaseReason;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import javax.annotation.Nonnull;
@@ -68,23 +66,6 @@ public class AsyncNexusPollTask implements AsyncPoller.PollTaskAsync<NexusTask> 
     this.pollRequest = pollRequest.build();
   }
 
-  private static <T> CompletableFuture<T> toCompletableFuture(
-      ListenableFuture<T> listenableFuture) {
-    CompletableFuture<T> result = new CompletableFuture<>();
-    listenableFuture.addListener(
-        () -> {
-          try {
-            result.complete(listenableFuture.get());
-          } catch (ExecutionException e) {
-            result.completeExceptionally(e.getCause());
-          } catch (Exception e) {
-            result.completeExceptionally(e);
-          }
-        },
-        ForkJoinPool.commonPool());
-    return result;
-  }
-
   @Override
   @SuppressWarnings("deprecation")
   public CompletableFuture<NexusTask> poll(SlotPermit permit) {
@@ -97,7 +78,7 @@ public class AsyncNexusPollTask implements AsyncPoller.PollTaskAsync<NexusTask> 
         .update(pollGauge.incrementAndGet());
 
     CompletableFuture<PollNexusTaskQueueResponse> response =
-        toCompletableFuture(
+        GrpcUtils.toCompletableFuture(
             service
                 .futureStub()
                 .withOption(METRICS_TAGS_CALL_OPTIONS_KEY, metricsScope)
@@ -123,11 +104,9 @@ public class AsyncNexusPollTask implements AsyncPoller.PollTaskAsync<NexusTask> 
             })
         .whenComplete(
             (r, e) -> {
-              if (e != null) {
-                MetricsTag.tagged(metricsScope, PollerTypeMetricsTag.PollerType.NEXUS_TASK)
-                    .gauge(MetricsType.NUM_POLLERS)
-                    .update(pollGauge.decrementAndGet());
-              }
+              MetricsTag.tagged(metricsScope, PollerTypeMetricsTag.PollerType.NEXUS_TASK)
+                  .gauge(MetricsType.NUM_POLLERS)
+                  .update(pollGauge.decrementAndGet());
             });
   }
 

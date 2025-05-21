@@ -6,9 +6,7 @@ import javax.annotation.concurrent.ThreadSafe;
 /** A simple implementation of an adjustable semaphore. */
 @ThreadSafe
 public final class AdjustableSemaphore {
-
-  /** semaphore starts at 0 capacity; must be set by setMaxPermits before use */
-  private final ResizeableSemaphore semaphore = new ResizeableSemaphore();
+  private final ResizeableSemaphore semaphore;
 
   /**
    * how many permits are allowed as governed by this semaphore. Access must be synchronized on this
@@ -17,13 +15,14 @@ public final class AdjustableSemaphore {
   private int maxPermits = 0;
 
   /** New instances should be configured with setMaxPermits(). */
-  public AdjustableSemaphore() {
-    // no op
+  public AdjustableSemaphore(int initialPermits) {
+    if (initialPermits < 1) {
+      throw new IllegalArgumentException(
+          "Semaphore size must be at least 1," + " was " + initialPermits);
+    }
+    this.semaphore = new ResizeableSemaphore(initialPermits);
   }
 
-  /*
-   * Must be synchronized because the underlying int is not thread safe
-   */
   /**
    * Set the max number of permits. Must be greater than zero.
    *
@@ -32,7 +31,7 @@ public final class AdjustableSemaphore {
    * until enough permits have been released to have the number of outstanding permits fall below
    * the new maximum. In other words, it does what you probably think it should.
    *
-   * @param newMax
+   * @param newMax the new maximum number of permits
    */
   synchronized void setMaxPermits(int newMax) {
     if (newMax < 1) {
@@ -56,7 +55,7 @@ public final class AdjustableSemaphore {
     this.maxPermits = newMax;
   }
 
-  /** Release a permit back to the semaphore. Make sure not to double-release. */
+  /** Release a permit back to the semaphore. */
   void release() {
     this.semaphore.release();
   }
@@ -80,8 +79,8 @@ public final class AdjustableSemaphore {
     private static final long serialVersionUID = 1L;
 
     /** Create a new semaphore with 0 permits. */
-    ResizeableSemaphore() {
-      super(0);
+    ResizeableSemaphore(int initialPermits) {
+      super(initialPermits);
     }
 
     @Override

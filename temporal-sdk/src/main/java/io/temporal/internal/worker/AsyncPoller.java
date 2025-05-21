@@ -97,8 +97,8 @@ final class AsyncPoller<T extends ScalingTask> extends BasePoller<T> {
                 pollerOptions.getPollThreadNamePrefix(),
                 pollerOptions.getUncaughtExceptionHandler()));
     for (PollTaskAsync<T> asyncTaskPoller : asyncTaskPollers) {
-      AdjustableSemaphore pollerSemaphore = new AdjustableSemaphore();
-      pollerSemaphore.setMaxPermits(pollerBehavior.getInitialMaxConcurrentTaskPollers());
+      AdjustableSemaphore pollerSemaphore =
+          new AdjustableSemaphore(pollerBehavior.getInitialMaxConcurrentTaskPollers());
       PollScaleReportHandle pollScaleReportHandle =
           new PollScaleReportHandle<>(
               pollerBehavior.getMinConcurrentTaskPollers(),
