@@ -1,11 +1,14 @@
 package io.temporal.internal.worker;
 
 class WorkerThreadsNameHelper {
-  private static final String WORKFLOW_POLL_THREAD_NAME_PREFIX = "Workflow Poller taskQueue=";
+  private static final String WORKFLOW_POLL_THREAD_NAME_PREFIX =
+      "Workflow MultiThreadedPoller taskQueue=";
   private static final String LOCAL_ACTIVITY_POLL_THREAD_NAME_PREFIX =
-      "Local Activity Poller taskQueue=";
-  private static final String ACTIVITY_POLL_THREAD_NAME_PREFIX = "Activity Poller taskQueue=";
-  private static final String NEXUS_POLL_THREAD_NAME_PREFIX = "Nexus Poller taskQueue=";
+      "Local Activity MultiThreadedPoller taskQueue=";
+  private static final String ACTIVITY_POLL_THREAD_NAME_PREFIX =
+      "Activity MultiThreadedPoller taskQueue=";
+  private static final String NEXUS_POLL_THREAD_NAME_PREFIX =
+      "Nexus MultiThreadedPoller taskQueue=";
   public static final String SHUTDOWN_MANAGER_THREAD_NAME_PREFIX = "TemporalShutdownManager";
   public static final String ACTIVITY_HEARTBEAT_THREAD_NAME_PREFIX = "TemporalActivityHeartbeat-";
 

@@ -4,21 +4,20 @@ import com.uber.m3.tally.Scope;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.temporal.internal.BackoffThrottler;
-import io.temporal.internal.common.GrpcUtils;
 import io.temporal.internal.task.VirtualThreadDelegate;
 import io.temporal.worker.MetricsType;
-import io.temporal.worker.tuning.SlotPermit;
-import io.temporal.worker.tuning.SlotReleaseReason;
-import io.temporal.worker.tuning.SlotSupplierFuture;
-import java.time.Duration;
+import io.temporal.worker.tuning.PollerBehaviorSimpleMaximum;
 import java.util.Objects;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class Poller<T> implements SuspendableWorker {
+/**
+ * MultiThreadedPoller is a poller that uses multiple threads to poll tasks. It uses one thread per
+ * poll request.
+ */
+final class MultiThreadedPoller<T> extends BasePoller<T> {
 
   public interface PollTask<TT> {
     /**
@@ -37,36 +36,31 @@ final class Poller<T> implements SuspendableWorker {
     void run() throws Throwable;
   }
 
+  private static final Logger log = LoggerFactory.getLogger(MultiThreadedPoller.class);
   private final String identity;
-  private final ShutdownableTaskExecutor<T> taskExecutor;
   private final PollTask<T> pollTask;
   private final PollerOptions pollerOptions;
-  private static final Logger log = LoggerFactory.getLogger(Poller.class);
-  private ExecutorService pollExecutor;
   private final Scope workerMetricsScope;
-
-  private final AtomicReference<CountDownLatch> suspendLatch = new AtomicReference<>();
 
   private Throttler pollRateThrottler;
 
   private final Thread.UncaughtExceptionHandler uncaughtExceptionHandler =
       new PollerUncaughtExceptionHandler();
 
-  public Poller(
+  public MultiThreadedPoller(
       String identity,
       PollTask<T> pollTask,
       ShutdownableTaskExecutor<T> taskExecutor,
       PollerOptions pollerOptions,
       Scope workerMetricsScope) {
+    super(taskExecutor);
     Objects.requireNonNull(identity, "identity cannot be null");
     Objects.requireNonNull(pollTask, "poll service should not be null");
-    Objects.requireNonNull(taskExecutor, "taskExecutor should not be null");
     Objects.requireNonNull(pollerOptions, "pollerOptions should not be null");
     Objects.requireNonNull(workerMetricsScope, "workerMetricsScope should not be null");
 
     this.identity = identity;
     this.pollTask = pollTask;
-    this.taskExecutor = taskExecutor;
     this.pollerOptions = pollerOptions;
     this.workerMetricsScope = workerMetricsScope;
   }
@@ -82,6 +76,16 @@ final class Poller<T> implements SuspendableWorker {
               pollerOptions.getMaximumPollRatePerSecond(),
               pollerOptions.getMaximumPollRateIntervalMilliseconds());
     }
+
+    if (!(pollerOptions.getPollerBehavior() instanceof PollerBehaviorSimpleMaximum)) {
+      throw new IllegalArgumentException(
+          "PollerBehavior "
+              + pollerOptions.getPollerBehavior()
+              + " is not supported. Only PollerBehaviorSimpleMaximum is supported.");
+    }
+    PollerBehaviorSimpleMaximum pollerBehavior =
+        (PollerBehaviorSimpleMaximum) pollerOptions.getPollerBehavior();
+
     // If virtual threads are enabled, we use a virtual thread executor.
     if (pollerOptions.isUsingVirtualThreads()) {
       AtomicInteger threadIndex = new AtomicInteger();
@@ -99,11 +103,11 @@ final class Poller<T> implements SuspendableWorker {
       // releases a thread.
       ThreadPoolExecutor threadPoolPoller =
           new ThreadPoolExecutor(
-              pollerOptions.getPollThreadCount(),
-              pollerOptions.getPollThreadCount(),
+              pollerBehavior.getMaxConcurrentTaskPollers(),
+              pollerBehavior.getMaxConcurrentTaskPollers(),
               1,
               TimeUnit.SECONDS,
-              new ArrayBlockingQueue<>(pollerOptions.getPollThreadCount()));
+              new ArrayBlockingQueue<>(pollerBehavior.getMaxConcurrentTaskPollers()));
       threadPoolPoller.setThreadFactory(
           new ExecutorThreadFactory(
               pollerOptions.getPollThreadNamePrefix(),
@@ -111,117 +115,12 @@ final class Poller<T> implements SuspendableWorker {
       pollExecutor = threadPoolPoller;
     }
 
-    for (int i = 0; i < pollerOptions.getPollThreadCount(); i++) {
+    for (int i = 0; i < pollerBehavior.getMaxConcurrentTaskPollers(); i++) {
       pollExecutor.execute(new PollLoopTask(new PollExecutionTask()));
       workerMetricsScope.counter(MetricsType.POLLER_START_COUNTER).inc(1);
     }
 
     return true;
-  }
-
-  @Override
-  public CompletableFuture<Void> shutdown(ShutdownManager shutdownManager, boolean interruptTasks) {
-    log.info("shutdown: {}", this);
-    WorkerLifecycleState lifecycleState = getLifecycleState();
-    switch (lifecycleState) {
-      case NOT_STARTED:
-      case TERMINATED:
-        return CompletableFuture.completedFuture(null);
-    }
-
-    return shutdownManager
-        // it's ok to forcefully shutdown pollers, especially because they stuck in a long poll call
-        // we don't lose any progress doing that
-        .shutdownExecutorNow(pollExecutor, this + "#pollExecutor", Duration.ofSeconds(1))
-        .exceptionally(
-            e -> {
-              log.error("Unexpected exception during shutdown", e);
-              return null;
-            });
-  }
-
-  @Override
-  public void awaitTermination(long timeout, TimeUnit unit) {
-    WorkerLifecycleState lifecycleState = getLifecycleState();
-    switch (lifecycleState) {
-      case NOT_STARTED:
-      case TERMINATED:
-        return;
-    }
-
-    long timeoutMillis = unit.toMillis(timeout);
-    ShutdownManager.awaitTermination(pollExecutor, timeoutMillis);
-  }
-
-  @Override
-  public void suspendPolling() {
-    if (suspendLatch.compareAndSet(null, new CountDownLatch(1))) {
-      log.info("Suspend Polling: {}", this);
-    } else {
-      log.info("Polling is already suspended: {}", this);
-    }
-  }
-
-  @Override
-  public void resumePolling() {
-    CountDownLatch existing = suspendLatch.getAndSet(null);
-    if (existing != null) {
-      log.info("Resume Polling {}", this);
-      existing.countDown();
-    }
-  }
-
-  @Override
-  public boolean isSuspended() {
-    return suspendLatch.get() != null;
-  }
-
-  @Override
-  public boolean isShutdown() {
-    return pollExecutor.isShutdown();
-  }
-
-  @Override
-  public boolean isTerminated() {
-    return pollExecutor.isTerminated() && taskExecutor.isTerminated();
-  }
-
-  @Override
-  public WorkerLifecycleState getLifecycleState() {
-    if (pollExecutor == null) {
-      return WorkerLifecycleState.NOT_STARTED;
-    }
-    if (suspendLatch.get() != null) {
-      return WorkerLifecycleState.SUSPENDED;
-    }
-    if (pollExecutor.isShutdown()) {
-      // return TERMINATED only if both pollExecutor and taskExecutor are terminated
-      if (pollExecutor.isTerminated() && taskExecutor.isTerminated()) {
-        return WorkerLifecycleState.TERMINATED;
-      } else {
-        return WorkerLifecycleState.SHUTDOWN;
-      }
-    }
-    return WorkerLifecycleState.ACTIVE;
-  }
-
-  static SlotPermit getSlotPermitAndHandleInterrupts(
-      SlotSupplierFuture future, TrackingSlotSupplier<?> slotSupplier) {
-    SlotPermit permit;
-    try {
-      permit = future.get();
-    } catch (InterruptedException e) {
-      SlotPermit maybePermitAnyway = future.abortReservation();
-      if (maybePermitAnyway != null) {
-        slotSupplier.releaseSlot(SlotReleaseReason.neverUsed(), maybePermitAnyway);
-      }
-      Thread.currentThread().interrupt();
-      return null;
-    } catch (ExecutionException e) {
-      log.warn("Error while trying to reserve a slot", e.getCause());
-      return null;
-    }
-    return permit;
   }
 
   @Override
@@ -231,15 +130,16 @@ final class Poller<T> implements SuspendableWorker {
     // around
     // that will simplify such kind of logging through workers.
     return String.format(
-        "Poller{name=%s, identity=%s}", pollerOptions.getPollThreadNamePrefix(), identity);
+        "MultiThreadedPoller{name=%s, identity=%s}",
+        pollerOptions.getPollThreadNamePrefix(), identity);
   }
 
   private class PollLoopTask implements Runnable {
 
-    private final Poller.ThrowingRunnable task;
+    private final MultiThreadedPoller.ThrowingRunnable task;
     private final BackoffThrottler pollBackoffThrottler;
 
-    PollLoopTask(Poller.ThrowingRunnable task) {
+    PollLoopTask(MultiThreadedPoller.ThrowingRunnable task) {
       this.task = task;
       this.pollBackoffThrottler =
           new BackoffThrottler(
@@ -261,7 +161,7 @@ final class Poller<T> implements SuspendableWorker {
           pollRateThrottler.throttle();
         }
 
-        CountDownLatch suspender = Poller.this.suspendLatch.get();
+        CountDownLatch suspender = suspendLatch.get();
         if (suspender != null) {
           if (log.isDebugEnabled()) {
             log.debug("poll task suspending latchCount=" + suspender.getCount());
@@ -292,24 +192,15 @@ final class Poller<T> implements SuspendableWorker {
           // Resubmit itself back to pollExecutor
           pollExecutor.execute(this);
         } else {
-          log.info("poll loop is terminated: {}", Poller.this.pollTask.getClass().getSimpleName());
+          log.info(
+              "poll loop is terminated: {}",
+              MultiThreadedPoller.this.pollTask.getClass().getSimpleName());
         }
       }
     }
-
-    /**
-     * Defines if the task should be terminated.
-     *
-     * <p>This method preserves the interrupted flag of the current thread.
-     *
-     * @return true if pollExecutor is terminating, or the current thread is interrupted.
-     */
-    private boolean shouldTerminate() {
-      return pollExecutor.isShutdown() || Thread.currentThread().isInterrupted();
-    }
   }
 
-  private class PollExecutionTask implements Poller.ThrowingRunnable {
+  private class PollExecutionTask implements MultiThreadedPoller.ThrowingRunnable {
 
     @Override
     public void run() throws Exception {
@@ -352,23 +243,6 @@ final class Poller<T> implements SuspendableWorker {
     private void logPollExceptionsSuppressedDuringShutdown(Thread t, Throwable e) {
       log.trace(
           "Failure in thread {} is suppressed, considered normal during shutdown", t.getName(), e);
-    }
-
-    private boolean shouldIgnoreDuringShutdown(Throwable ex) {
-      if (ex instanceof StatusRuntimeException) {
-        if (GrpcUtils.isChannelShutdownException((StatusRuntimeException) ex)) {
-          return true;
-        }
-      }
-      return
-      // if we are terminating and getting rejected execution - it's normal
-      ex instanceof RejectedExecutionException
-          // if the worker thread gets InterruptedException - it's normal during shutdown
-          || ex instanceof InterruptedException
-          // if we get wrapped InterruptedException like what PollTask or GRPC clients do with
-          // setting Thread.interrupted() on - it's normal during shutdown too. See PollTask
-          // javadoc.
-          || ex.getCause() instanceof InterruptedException;
     }
   }
 }

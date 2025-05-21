@@ -9,6 +9,8 @@ import io.temporal.client.WorkflowStub;
 import io.temporal.common.WorkflowExecutionHistory;
 import io.temporal.common.converter.DefaultDataConverter;
 import io.temporal.testing.internal.SDKTestWorkflowRule;
+import io.temporal.worker.WorkerOptions;
+import io.temporal.worker.tuning.PollerBehaviorAutoscaling;
 import io.temporal.workflow.Workflow;
 import io.temporal.workflow.shared.TestActivities;
 import io.temporal.workflow.shared.TestWorkflows.TestWorkflow1;
@@ -24,6 +26,10 @@ public class ActivityMetadataTest {
   public SDKTestWorkflowRule testWorkflowRule =
       SDKTestWorkflowRule.newBuilder()
           .setWorkflowTypes(TestWorkflowImpl.class)
+          .setWorkerOptions(
+              WorkerOptions.newBuilder()
+                  .setActivityTaskPollersBehaviour(new PollerBehaviorAutoscaling(1, 10, 5))
+                  .build())
           .setActivityImplementations(new TestActivities.TestActivitiesImpl())
           .build();
 

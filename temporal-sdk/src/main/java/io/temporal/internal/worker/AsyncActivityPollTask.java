@@ -2,7 +2,9 @@ package io.temporal.internal.worker;
 
 import static io.temporal.serviceclient.MetricsTag.METRICS_TAGS_CALL_OPTIONS_KEY;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.DoubleValue;
+import com.google.protobuf.Timestamp;
 import com.uber.m3.tally.Scope;
 import io.temporal.api.common.v1.WorkerVersionCapabilities;
 import io.temporal.api.taskqueue.v1.TaskQueue;
@@ -15,8 +17,12 @@ import io.temporal.serviceclient.MetricsTag;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.worker.MetricsType;
 import io.temporal.worker.PollerTypeMetricsTag;
-import io.temporal.worker.tuning.*;
-import java.util.Objects;
+import io.temporal.worker.tuning.ActivitySlotInfo;
+import io.temporal.worker.tuning.SlotPermit;
+import io.temporal.worker.tuning.SlotReleaseReason;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import javax.annotation.Nonnull;
@@ -24,17 +30,17 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class ActivityPollTask implements MultiThreadedPoller.PollTask<ActivityTask> {
-  private static final Logger log = LoggerFactory.getLogger(ActivityPollTask.class);
+public class AsyncActivityPollTask implements AsyncPoller.PollTaskAsync<ActivityTask> {
+  private static final Logger log = LoggerFactory.getLogger(AsyncActivityPollTask.class);
 
+  private final TrackingSlotSupplier<?> slotSupplier;
   private final WorkflowServiceStubs service;
-  private final TrackingSlotSupplier<ActivitySlotInfo> slotSupplier;
   private final Scope metricsScope;
   private final PollActivityTaskQueueRequest pollRequest;
   private final AtomicInteger pollGauge = new AtomicInteger();
 
   @SuppressWarnings("deprecation")
-  public ActivityPollTask(
+  public AsyncActivityPollTask(
       @Nonnull WorkflowServiceStubs service,
       @Nonnull String namespace,
       @Nonnull String taskQueue,
@@ -45,9 +51,9 @@ final class ActivityPollTask implements MultiThreadedPoller.PollTask<ActivityTas
       @Nonnull TrackingSlotSupplier<ActivitySlotInfo> slotSupplier,
       @Nonnull Scope metricsScope,
       @Nonnull Supplier<GetSystemInfoResponse.Capabilities> serverCapabilities) {
-    this.service = Objects.requireNonNull(service);
+    this.service = service;
     this.slotSupplier = slotSupplier;
-    this.metricsScope = Objects.requireNonNull(metricsScope);
+    this.metricsScope = metricsScope;
 
     PollActivityTaskQueueRequest.Builder pollRequest =
         PollActivityTaskQueueRequest.newBuilder()
@@ -71,61 +77,69 @@ final class ActivityPollTask implements MultiThreadedPoller.PollTask<ActivityTas
     this.pollRequest = pollRequest.build();
   }
 
+  private static <T> CompletableFuture<T> toCompletableFuture(
+      ListenableFuture<T> listenableFuture) {
+    CompletableFuture<T> result = new CompletableFuture<>();
+    listenableFuture.addListener(
+        () -> {
+          try {
+            result.complete(listenableFuture.get());
+          } catch (ExecutionException e) {
+            result.completeExceptionally(e.getCause());
+          } catch (Exception e) {
+            result.completeExceptionally(e);
+          }
+        },
+        ForkJoinPool.commonPool());
+    return result;
+  }
+
   @Override
   @SuppressWarnings("deprecation")
-  public ActivityTask poll() {
+  public CompletableFuture<ActivityTask> poll(SlotPermit permit) {
     if (log.isTraceEnabled()) {
       log.trace("poll request begin: " + pollRequest);
     }
-    PollActivityTaskQueueResponse response;
-    SlotPermit permit;
-    SlotSupplierFuture future;
-    boolean isSuccessful = false;
-    try {
-      future =
-          slotSupplier.reserveSlot(
-              new SlotReservationData(
-                  pollRequest.getTaskQueue().getName(),
-                  pollRequest.getIdentity(),
-                  pollRequest.getWorkerVersionCapabilities().getBuildId()));
-    } catch (Exception e) {
-      log.warn("Error while trying to reserve a slot for an activity", e.getCause());
-      return null;
-    }
-    permit = MultiThreadedPoller.getSlotPermitAndHandleInterrupts(future, slotSupplier);
-    if (permit == null) return null;
 
-    MetricsTag.tagged(metricsScope, PollerTypeMetricsTag.PollerType.ACTIVITY_TASK)
+    MetricsTag.tagged(metricsScope, PollerTypeMetricsTag.PollerType.NEXUS_TASK)
         .gauge(MetricsType.NUM_POLLERS)
         .update(pollGauge.incrementAndGet());
 
-    try {
-      response =
-          service
-              .blockingStub()
-              .withOption(METRICS_TAGS_CALL_OPTIONS_KEY, metricsScope)
-              .pollActivityTaskQueue(pollRequest);
+    CompletableFuture<PollActivityTaskQueueResponse> response =
+        toCompletableFuture(
+            service
+                .futureStub()
+                .withOption(METRICS_TAGS_CALL_OPTIONS_KEY, metricsScope)
+                .pollActivityTaskQueue(pollRequest));
 
-      if (response == null || response.getTaskToken().isEmpty()) {
-        metricsScope.counter(MetricsType.ACTIVITY_POLL_NO_TASK_COUNTER).inc(1);
-        return null;
-      }
-      metricsScope
-          .timer(MetricsType.ACTIVITY_SCHEDULE_TO_START_LATENCY)
-          .record(
-              ProtobufTimeUtils.toM3Duration(
-                  response.getStartedTime(), response.getCurrentAttemptScheduledTime()));
-      isSuccessful = true;
-      return new ActivityTask(
-          response,
-          permit,
-          () -> slotSupplier.releaseSlot(SlotReleaseReason.taskComplete(), permit));
-    } finally {
-      MetricsTag.tagged(metricsScope, PollerTypeMetricsTag.PollerType.ACTIVITY_TASK)
-          .gauge(MetricsType.NUM_POLLERS)
-          .update(pollGauge.decrementAndGet());
+    return response
+        .thenApply(
+            r -> {
+              if (r == null || r.getTaskToken().isEmpty()) {
+                metricsScope.counter(MetricsType.NEXUS_POLL_NO_TASK_COUNTER).inc(1);
+                return null;
+              }
+              Timestamp startedTime = ProtobufTimeUtils.getCurrentProtoTime();
+              metricsScope
+                  .timer(MetricsType.NEXUS_SCHEDULE_TO_START_LATENCY)
+                  .record(ProtobufTimeUtils.toM3Duration(startedTime, r.getScheduledTime()));
+              return new ActivityTask(
+                  r,
+                  permit,
+                  () -> slotSupplier.releaseSlot(SlotReleaseReason.taskComplete(), permit));
+            })
+        .whenComplete(
+            (r, e) -> {
+              if (e != null) {
+                MetricsTag.tagged(metricsScope, PollerTypeMetricsTag.PollerType.NEXUS_TASK)
+                    .gauge(MetricsType.NUM_POLLERS)
+                    .update(pollGauge.decrementAndGet());
+              }
+            });
+  }
 
-      if (!isSuccessful) slotSupplier.releaseSlot(SlotReleaseReason.neverUsed(), permit);
-    }
+  @Override
+  public String toString() {
+    return "AsyncActivityPollTask{}";
   }
 }
