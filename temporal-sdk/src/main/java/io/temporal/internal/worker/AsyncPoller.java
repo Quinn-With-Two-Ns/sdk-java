@@ -11,6 +11,7 @@ import io.temporal.worker.tuning.SlotReleaseReason;
 import io.temporal.worker.tuning.SlotSupplierFuture;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +29,8 @@ final class AsyncPoller<T extends ScalingTask> extends BasePoller<T> {
   private final PollerBehaviorAutoscaling pollerBehavior;
   private final Scope workerMetricsScope;
   private Throttler pollRateThrottler;
+  private final Thread.UncaughtExceptionHandler uncaughtExceptionHandler =
+      new PollerUncaughtExceptionHandler();
 
   AsyncPoller(
       TrackingSlotSupplier<?> slotSupplier,
@@ -53,18 +56,26 @@ final class AsyncPoller<T extends ScalingTask> extends BasePoller<T> {
       PollerOptions pollerOptions,
       Scope workerMetricsScope) {
     super(pollTaskExecutor);
+    Objects.requireNonNull(slotSupplier, "slot supplier cannot be null");
+    Objects.requireNonNull(slotReservationData, "slot reservation data should not be null");
+    Objects.requireNonNull(asyncTaskPollers, "async tasK pollers should not be null");
+    if (asyncTaskPollers.isEmpty()) {
+      throw new IllegalArgumentException("async task pollers must contain at least one poller");
+    }
+    Objects.requireNonNull(pollerOptions, "pollerOptions should not be null");
+    Objects.requireNonNull(workerMetricsScope, "workerMetricsScope should not be null");
     this.slotSupplier = slotSupplier;
     this.slotReservationData = slotReservationData;
     this.asyncTaskPollers = asyncTaskPollers;
-    this.pollerOptions = pollerOptions;
-    this.workerMetricsScope = workerMetricsScope;
     if (!(pollerOptions.getPollerBehavior() instanceof PollerBehaviorAutoscaling)) {
       throw new IllegalArgumentException(
           "PollerBehavior "
               + pollerOptions.getPollerBehavior()
               + " is not supported. Only PollerBehaviorSimpleMaximum is supported.");
     }
-    pollerBehavior = (PollerBehaviorAutoscaling) pollerOptions.getPollerBehavior();
+    this.pollerBehavior = (PollerBehaviorAutoscaling) pollerOptions.getPollerBehavior();
+    this.pollerOptions = pollerOptions;
+    this.workerMetricsScope = workerMetricsScope;
   }
 
   @Override
@@ -77,8 +88,14 @@ final class AsyncPoller<T extends ScalingTask> extends BasePoller<T> {
               pollerOptions.getMaximumPollRatePerSecond(),
               pollerOptions.getMaximumPollRateIntervalMilliseconds());
     }
-    // TODO Set thread factory
-    ScheduledExecutorService exec = Executors.newScheduledThreadPool(asyncTaskPollers.size() + 1);
+    // Each poller will have its own thread and one thread will be used to schedule the scale
+    // reporters
+    ScheduledExecutorService exec =
+        Executors.newScheduledThreadPool(
+            asyncTaskPollers.size() + 1,
+            new ExecutorThreadFactory(
+                pollerOptions.getPollThreadNamePrefix(),
+                pollerOptions.getUncaughtExceptionHandler()));
     for (PollTaskAsync<T> asyncTaskPoller : asyncTaskPollers) {
       AdjustableSemaphore pollerSemaphore = new AdjustableSemaphore();
       pollerSemaphore.setMaxPermits(pollerBehavior.getInitialMaxConcurrentTaskPollers());
@@ -190,7 +207,11 @@ final class AsyncPoller<T extends ScalingTask> extends BasePoller<T> {
                   return null;
                 });
       } catch (Throwable e) {
-
+        if (e instanceof InterruptedException) {
+          // we restore the flag here, so it can be checked and processed (with exit) in finally.
+          Thread.currentThread().interrupt();
+        }
+        uncaughtExceptionHandler.uncaughtException(Thread.currentThread(), e);
       } finally {
         if (!shouldTerminate()) {
           // Resubmit itself back to pollExecutor

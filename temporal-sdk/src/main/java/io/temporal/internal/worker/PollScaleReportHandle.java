@@ -7,6 +7,10 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * PollScaleReportHandle is responsible for managing the scaling of pollers based on the scaling
+ * feedback attached to the task by the server.
+ */
 @ThreadSafe
 public class PollScaleReportHandle<T extends ScalingTask> implements Runnable {
   private static final Logger logger = LoggerFactory.getLogger(PollScaleReportHandle.class);

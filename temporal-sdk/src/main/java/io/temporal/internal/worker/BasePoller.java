@@ -1,5 +1,6 @@
 package io.temporal.internal.worker;
 
+import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.temporal.internal.common.GrpcUtils;
 import io.temporal.worker.tuning.SlotPermit;
@@ -165,5 +166,40 @@ abstract class BasePoller<T> implements SuspendableWorker {
         // setting Thread.interrupted() on - it's normal during shutdown too. See PollTask
         // javadoc.
         || ex.getCause() instanceof InterruptedException;
+  }
+
+  protected final class PollerUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
+
+    @Override
+    public void uncaughtException(Thread t, Throwable e) {
+      if (!pollExecutor.isShutdown() || !shouldIgnoreDuringShutdown(e)) {
+        logPollErrors(t, e);
+      } else {
+        logPollExceptionsSuppressedDuringShutdown(t, e);
+      }
+    }
+
+    private void logPollErrors(Thread t, Throwable e) {
+      if (e instanceof StatusRuntimeException) {
+        StatusRuntimeException te = (StatusRuntimeException) e;
+        if (te.getStatus().getCode() == Status.Code.DEADLINE_EXCEEDED) {
+          log.info("DEADLINE_EXCEEDED in poller thread {}", t.getName(), e);
+          return;
+        }
+      }
+      log.warn("Failure in poller thread {}", t.getName(), e);
+    }
+
+    /**
+     * Some exceptions are considered normal during shutdown {@link #shouldIgnoreDuringShutdown} and
+     * we log them in the most quiet manner.
+     *
+     * @param t thread where the exception happened
+     * @param e the exception itself
+     */
+    private void logPollExceptionsSuppressedDuringShutdown(Thread t, Throwable e) {
+      log.trace(
+          "Failure in thread {} is suppressed, considered normal during shutdown", t.getName(), e);
+    }
   }
 }

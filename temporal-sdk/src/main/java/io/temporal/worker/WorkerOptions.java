@@ -493,37 +493,52 @@ public final class WorkerOptions {
       return this;
     }
 
-    /** Set the poller behavior for workflow task pollers. */
+    /**
+     * Set the poller behavior for workflow task pollers.
+     *
+     * <p>If the sticky queue is enabled, the poller behavior will be used for the sticky queue as
+     * well.
+     */
     @Experimental
     public Builder setWorkflowTaskPollersBehaviour(PollerBehaviorAutoscaling pollerBehavior) {
       this.workflowTaskPollersBehaviour = pollerBehavior;
       return this;
     }
 
+    /**
+     * Set the poller behavior for workflow task pollers.
+     *
+     * <p>If the sticky queue is enabled, the poller behavior will be used for the sticky queue as
+     * well.
+     */
     @Experimental
     public Builder setWorkflowTaskPollersBehaviour(PollerBehaviorSimpleMaximum pollerBehavior) {
       this.workflowTaskPollersBehaviour = pollerBehavior;
       return this;
     }
 
+    /** Set the poller behavior for activity task pollers. */
     @Experimental
     public Builder setActivityTaskPollersBehaviour(PollerBehaviorAutoscaling pollerBehavior) {
       this.activityTaskPollersBehaviour = pollerBehavior;
       return this;
     }
 
+    /** Set the poller behavior for activity task pollers. */
     @Experimental
     public Builder setActivityTaskPollersBehaviour(PollerBehaviorSimpleMaximum pollerBehavior) {
       this.activityTaskPollersBehaviour = pollerBehavior;
       return this;
     }
 
+    /** Set the poller behavior for nexus task pollers. */
     @Experimental
     public Builder setNexusTaskPollersBehaviour(PollerBehaviorAutoscaling pollerBehavior) {
       this.nexusTaskPollersBehaviour = pollerBehavior;
       return this;
     }
 
+    /** Set the poller behavior for nexus task pollers. */
     @Experimental
     public Builder setNexusTaskPollersBehaviour(PollerBehaviorSimpleMaximum pollerBehavior) {
       this.nexusTaskPollersBehaviour = pollerBehavior;
