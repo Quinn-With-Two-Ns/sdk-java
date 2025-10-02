@@ -132,6 +132,17 @@ public interface WorkflowStub {
   WorkflowExecution start(Object... args);
 
   /**
+   * Starts workflow execution according to the configured {@link WorkflowOptions} returning a
+   * {@link CompletableFuture} that is completed when the start request finishes. The returned
+   * future completes exceptionally with the same exceptions {@link #start(Object...)} would throw.
+   *
+   * @param args workflow start arguments
+   * @return {@link CompletableFuture} that contains {@link WorkflowExecution} identifying the
+   *     started workflow instance
+   */
+  CompletableFuture<WorkflowExecution> startAsync(Object... args);
+
+  /**
    * Asynchronously update a workflow execution by invoking its update handler, and start the
    * workflow according to the option's {@link WorkflowIdConflictPolicy}. It returns a handle to the
    * update request. If {@link WorkflowUpdateStage#COMPLETED} is specified, in the options, the

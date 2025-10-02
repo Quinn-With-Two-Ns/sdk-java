@@ -23,6 +23,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 class WorkflowStubImpl implements WorkflowStub {
+  private static final String STUB_ALREADY_STARTED_ERROR =
+      "Cannot reuse a stub instance to start more than one workflow execution. The stub "
+          + "points to already started execution. If you are trying to wait for a workflow completion either "
+          + "change WorkflowIdReusePolicy from AllowDuplicate or use WorkflowStub.getResult";
+
   private final WorkflowClientOptions clientOptions;
   private final WorkflowClientCallsInterceptor workflowClientInvoker;
   private final Optional<String> workflowType;
@@ -108,6 +113,52 @@ class WorkflowStubImpl implements WorkflowStub {
       throw new IllegalStateException("Required parameter WorkflowOptions is missing");
     }
     return startWithOptions(WorkflowOptions.merge(null, null, options), args);
+  }
+
+  @Override
+  public CompletableFuture<WorkflowExecution> startAsync(Object... args) {
+    if (options == null) {
+      CompletableFuture<WorkflowExecution> failed = new CompletableFuture<>();
+      failed.completeExceptionally(
+          new IllegalStateException("Required parameter WorkflowOptions is missing"));
+      return failed;
+    }
+    WorkflowOptions mergedOptions = WorkflowOptions.merge(null, null, options);
+    return startWithOptionsAsync(mergedOptions, args);
+  }
+
+  private CompletableFuture<WorkflowExecution> startWithOptionsAsync(
+      WorkflowOptions options, Object... args) {
+    checkExecutionIsNotStarted();
+    String workflowId = getWorkflowIdForStart(options);
+    WorkflowExecution startAttemptExecution =
+        WorkflowExecution.newBuilder().setWorkflowId(workflowId).build();
+    if (!execution.compareAndSet(null, startAttemptExecution)) {
+      throw new IllegalStateException(STUB_ALREADY_STARTED_ERROR);
+    }
+
+    CompletableFuture<WorkflowClientCallsInterceptor.WorkflowStartOutput> startFuture;
+    try {
+      startFuture =
+          workflowClientInvoker.startAsync(
+              new WorkflowClientCallsInterceptor.WorkflowStartInput(
+                  workflowId, workflowType.get(), Header.empty(), args, options));
+    } catch (RuntimeException | Error e) {
+      execution.compareAndSet(startAttemptExecution, null);
+      throw e;
+    }
+
+    return startFuture.handle(
+        (output, throwable) -> {
+          if (throwable != null) {
+            execution.compareAndSet(startAttemptExecution, null);
+            throw mapStartFailure(workflowId, throwable);
+          }
+
+          WorkflowExecution workflowExecution = output.getWorkflowExecution();
+          populateExecutionAfterStart(workflowExecution);
+          return workflowExecution;
+        });
   }
 
   @Override
@@ -492,16 +543,27 @@ class WorkflowStubImpl implements WorkflowStub {
 
   private void checkExecutionIsNotStarted() {
     if (execution.get() != null) {
-      throw new IllegalStateException(
-          "Cannot reuse a stub instance to start more than one workflow execution. The stub "
-              + "points to already started execution. If you are trying to wait for a workflow completion either "
-              + "change WorkflowIdReusePolicy from AllowDuplicate or use WorkflowStub.getResult");
+      throw new IllegalStateException(STUB_ALREADY_STARTED_ERROR);
     }
   }
 
   /*
    * Exceptions handling and processing for all methods of the stub
    */
+  private RuntimeException mapStartFailure(String workflowId, Throwable failure) {
+    if (failure instanceof CompletionException) {
+      failure = failure.getCause();
+    }
+    failure = CheckedExceptionWrapper.unwrap(failure);
+    if (failure instanceof StatusRuntimeException) {
+      return wrapStartException(
+          workflowId, workflowType.orElse(null), (StatusRuntimeException) failure);
+    }
+    WorkflowExecution workflowExecution =
+        WorkflowExecution.newBuilder().setWorkflowId(workflowId).build();
+    return new WorkflowServiceException(workflowExecution, workflowType.orElse(null), failure);
+  }
+
   private RuntimeException wrapStartException(
       String workflowId, String workflowType, StatusRuntimeException e) {
     WorkflowExecution.Builder executionBuilder =

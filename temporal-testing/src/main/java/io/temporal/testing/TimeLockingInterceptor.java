@@ -55,6 +55,11 @@ class TimeLockingInterceptor extends WorkflowClientInterceptorBase {
     }
 
     @Override
+    public CompletableFuture<WorkflowExecution> startAsync(Object... args) {
+      return next.startAsync(args);
+    }
+
+    @Override
     public <R> WorkflowUpdateHandle<R> startUpdateWithStart(
         UpdateOptions<R> options, Object[] updateArgs, Object[] startArgs) {
       return next.startUpdateWithStart(options, updateArgs, startArgs);

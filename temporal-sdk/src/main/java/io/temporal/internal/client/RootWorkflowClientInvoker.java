@@ -24,12 +24,14 @@ import io.temporal.common.interceptors.WorkflowClientCallsInterceptor;
 import io.temporal.internal.client.external.GenericWorkflowClient;
 import io.temporal.internal.common.HeaderUtils;
 import io.temporal.internal.nexus.CurrentNexusOperationContext;
+import io.temporal.internal.nexus.InternalNexusOperationContext;
 import io.temporal.payload.context.WorkflowSerializationContext;
 import io.temporal.serviceclient.StatusUtils;
 import io.temporal.worker.WorkflowTaskDispatchHandle;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.StreamSupport;
@@ -101,6 +103,72 @@ public class RootWorkflowClientInvoker implements WorkflowClientCallsInterceptor
       }
       return new WorkflowStartOutput(execution);
     }
+  }
+
+  @Override
+  public CompletableFuture<WorkflowStartOutput> startAsync(WorkflowStartInput input) {
+    DataConverter dataConverterWithWorkflowContext =
+        clientOptions
+            .getDataConverter()
+            .withContext(
+                new WorkflowSerializationContext(
+                    clientOptions.getNamespace(), input.getWorkflowId()));
+
+    StartWorkflowExecutionRequest.Builder startRequestBuilder =
+        toStartRequest(dataConverterWithWorkflowContext, input);
+
+    InternalNexusOperationContext nexusContext =
+        CurrentNexusOperationContext.isNexusContext() ? CurrentNexusOperationContext.get() : null;
+
+    @Nullable WorkflowTaskDispatchHandle eagerDispatchHandle = obtainDispatchHandle(input);
+    boolean requestEagerExecution = eagerDispatchHandle != null;
+    startRequestBuilder.setRequestEagerExecution(requestEagerExecution);
+    StartWorkflowExecutionRequest startRequest = startRequestBuilder.build();
+
+    CompletableFuture<StartWorkflowExecutionResponse> responseFuture;
+    try {
+      responseFuture = genericClient.startAsync(startRequest);
+    } catch (RuntimeException e) {
+      if (eagerDispatchHandle != null) {
+        eagerDispatchHandle.close();
+      }
+      throw e;
+    }
+
+    return responseFuture.handle(
+        (response, throwable) -> {
+          try {
+            if (throwable != null) {
+              throw new CompletionException(throwable);
+            }
+
+            WorkflowExecution execution =
+                WorkflowExecution.newBuilder()
+                    .setRunId(response.getRunId())
+                    .setWorkflowId(startRequest.getWorkflowId())
+                    .build();
+
+            if (requestEagerExecution && response.hasEagerWorkflowTask()) {
+              try {
+                eagerDispatchHandle.dispatch(response.getEagerWorkflowTask());
+              } catch (Exception e) {
+                log.error(
+                    "[BUG] Eager Workflow Task was received from the Server, but failed to be dispatched on the local worker",
+                    e);
+              }
+            }
+
+            if (nexusContext != null) {
+              nexusContext.setStartWorkflowResponseLink(response.getLink());
+            }
+
+            return new WorkflowStartOutput(execution);
+          } finally {
+            if (eagerDispatchHandle != null) {
+              eagerDispatchHandle.close();
+            }
+          }
+        });
   }
 
   @Override

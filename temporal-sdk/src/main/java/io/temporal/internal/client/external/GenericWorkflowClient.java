@@ -10,6 +10,9 @@ public interface GenericWorkflowClient {
 
   StartWorkflowExecutionResponse start(StartWorkflowExecutionRequest request);
 
+  CompletableFuture<StartWorkflowExecutionResponse> startAsync(
+      StartWorkflowExecutionRequest request);
+
   void signal(SignalWorkflowExecutionRequest request);
 
   SignalWithStartWorkflowExecutionResponse signalWithStart(

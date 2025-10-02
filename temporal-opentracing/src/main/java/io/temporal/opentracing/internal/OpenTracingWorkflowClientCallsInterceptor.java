@@ -8,6 +8,7 @@ import io.temporal.common.interceptors.WorkflowClientCallsInterceptor;
 import io.temporal.common.interceptors.WorkflowClientCallsInterceptorBase;
 import io.temporal.opentracing.OpenTracingOptions;
 import io.temporal.opentracing.SpanOperationType;
+import java.util.concurrent.CompletableFuture;
 
 public class OpenTracingWorkflowClientCallsInterceptor extends WorkflowClientCallsInterceptorBase {
   private final SpanFactory spanFactory;
@@ -36,6 +37,23 @@ public class OpenTracingWorkflowClientCallsInterceptor extends WorkflowClientCal
       return super.start(input);
     } finally {
       workflowStartSpan.finish();
+    }
+  }
+
+  @Override
+  public CompletableFuture<WorkflowStartOutput> startAsync(WorkflowStartInput input) {
+    Span workflowStartSpan =
+        contextAccessor.writeSpanContextToHeader(
+            () -> createWorkflowStartSpanBuilder(input, SpanOperationType.START_WORKFLOW).start(),
+            input.getHeader(),
+            tracer);
+    try (Scope ignored = tracer.scopeManager().activate(workflowStartSpan)) {
+      CompletableFuture<WorkflowStartOutput> result = super.startAsync(input);
+      result.whenComplete((unused, throwable) -> workflowStartSpan.finish());
+      return result;
+    } catch (RuntimeException | Error e) {
+      workflowStartSpan.finish();
+      throw e;
     }
   }
 

@@ -53,6 +53,22 @@ public final class GenericWorkflowClientImpl implements GenericWorkflowClient {
         grpcRetryerOptions);
   }
 
+  @Override
+  public CompletableFuture<StartWorkflowExecutionResponse> startAsync(
+      StartWorkflowExecutionRequest request) {
+    Map<String, String> tags = tagsForStartWorkflow(request);
+    Scope scope = metricsScope.tagged(tags);
+    return grpcRetryer.retryWithResultAsync(
+        asyncThrottlerExecutor,
+        () ->
+            toCompletableFuture(
+                service
+                    .futureStub()
+                    .withOption(METRICS_TAGS_CALL_OPTIONS_KEY, scope)
+                    .startWorkflowExecution(request)),
+        grpcRetryerOptions);
+  }
+
   private static Map<String, String> tagsForStartWorkflow(StartWorkflowExecutionRequest request) {
     return new ImmutableMap.Builder<String, String>(2)
         .put(MetricsTag.WORKFLOW_TYPE, request.getWorkflowType().getName())

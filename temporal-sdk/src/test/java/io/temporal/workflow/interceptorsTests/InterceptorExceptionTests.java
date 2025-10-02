@@ -10,6 +10,7 @@ import io.temporal.common.interceptors.WorkflowClientCallsInterceptorBase;
 import io.temporal.common.interceptors.WorkflowClientInterceptorBase;
 import io.temporal.testing.internal.SDKTestWorkflowRule;
 import io.temporal.workflow.shared.TestWorkflows.NoArgsWorkflow;
+import java.util.concurrent.CompletableFuture;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -64,6 +65,13 @@ public class InterceptorExceptionTests {
         @Override
         public WorkflowStartOutput start(WorkflowStartInput input) {
           throw new InterceptorException();
+        }
+
+        @Override
+        public CompletableFuture<WorkflowStartOutput> startAsync(WorkflowStartInput input) {
+          CompletableFuture<WorkflowStartOutput> result = new CompletableFuture<>();
+          result.completeExceptionally(new InterceptorException());
+          return result;
         }
       };
     }

@@ -24,6 +24,7 @@ import io.temporal.workflow.shared.TestWorkflows.AngryChild;
 import io.temporal.workflow.shared.TestWorkflows.ITestChild;
 import io.temporal.workflow.shared.TestWorkflows.TestWorkflow1;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,6 +56,13 @@ public class ChildWorkflowRetryTest {
                             public WorkflowStartOutput start(WorkflowStartInput input) {
                               lastStartedWorkflowType.set(input.getWorkflowType());
                               return super.start(input);
+                            }
+
+                            @Override
+                            public CompletableFuture<WorkflowStartOutput> startAsync(
+                                WorkflowStartInput input) {
+                              lastStartedWorkflowType.set(input.getWorkflowType());
+                              return super.startAsync(input);
                             }
 
                             @Override

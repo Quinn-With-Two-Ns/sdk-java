@@ -1,6 +1,7 @@
 package io.temporal.common.interceptors;
 
 import io.temporal.client.WorkflowUpdateHandle;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 
 /** Convenience base class for {@link WorkflowClientCallsInterceptor} implementations. */
@@ -15,6 +16,11 @@ public class WorkflowClientCallsInterceptorBase implements WorkflowClientCallsIn
   @Override
   public WorkflowStartOutput start(WorkflowStartInput input) {
     return next.start(input);
+  }
+
+  @Override
+  public CompletableFuture<WorkflowStartOutput> startAsync(WorkflowStartInput input) {
+    return next.startAsync(input);
   }
 
   @Override

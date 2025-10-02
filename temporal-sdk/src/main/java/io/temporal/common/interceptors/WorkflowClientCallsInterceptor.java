@@ -34,6 +34,14 @@ public interface WorkflowClientCallsInterceptor {
   WorkflowStartOutput start(WorkflowStartInput input);
 
   /**
+   * Asynchronously starts workflow execution. Implementers overriding this method will likely also
+   * need to override {@link #signalWithStart}.
+   *
+   * @see #signalWithStart
+   */
+  CompletableFuture<WorkflowStartOutput> startAsync(WorkflowStartInput input);
+
+  /**
    * If you implement this method, {@link #signalWithStart} most likely needs to be implemented too.
    *
    * @see #signalWithStart
