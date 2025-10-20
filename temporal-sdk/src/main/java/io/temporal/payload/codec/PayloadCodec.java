@@ -14,9 +14,22 @@ import javax.annotation.Nonnull;
  * Encoder implementation.
  */
 public interface PayloadCodec {
+  /**
+   * Applies the codec-specific encoding to the provided payloads.
+   *
+   * @param payloads the payloads that should be encoded.
+   * @return a list containing the encoded representations of {@code payloads}.
+   */
   @Nonnull
   List<Payload> encode(@Nonnull List<Payload> payloads);
 
+  /**
+   * Reverses {@link #encode(List) encode(List)} by decoding the provided payloads back to their
+   * original representation.
+   *
+   * @param payloads the encoded payloads to decode.
+   * @return the decoded payloads that can be consumed by the SDK or user code.
+   */
   @Nonnull
   List<Payload> decode(@Nonnull List<Payload> payloads);
 

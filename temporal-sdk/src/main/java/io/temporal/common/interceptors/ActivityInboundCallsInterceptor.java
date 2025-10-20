@@ -43,6 +43,12 @@ public interface ActivityInboundCallsInterceptor {
     }
   }
 
+  /**
+   * Provides the interceptor with the {@link ActivityExecutionContext} for the intercepted activity
+   * invocation.
+   *
+   * @param context execution context associated with the running activity.
+   */
   void init(ActivityExecutionContext context);
 
   /**

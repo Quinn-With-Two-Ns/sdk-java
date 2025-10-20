@@ -2,6 +2,14 @@ package io.temporal.workflow;
 
 import java.time.Duration;
 
+/**
+ * A deterministic queue consumer that can be used from workflow code to retrieve items from a
+ * {@link WorkflowQueue}. Implementations mirror the Temporal workflow concurrency model, providing
+ * blocking, cancellable, and non-blocking operations that never interact with standard Java
+ * threading primitives.
+ *
+ * @param <E> type of the elements stored in the queue
+ */
 public interface QueueConsumer<E> {
 
   /**
