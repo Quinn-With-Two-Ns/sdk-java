@@ -20,6 +20,7 @@ import io.temporal.internal.nexus.WorkflowRunOperationToken;
 import io.temporal.nexus.Nexus;
 import io.temporal.nexus.WorkflowRunOperation;
 import io.temporal.testing.internal.SDKTestWorkflowRule;
+import io.temporal.worker.WorkerFactoryOptions;
 import io.temporal.workflow.*;
 import java.time.Duration;
 import java.util.Collections;
@@ -37,8 +38,9 @@ import org.junit.Test;
  *
  * <ul>
  *   <li>The {@link PerEndpointEncryptionCodec} auto-detects the endpoint from Nexus context on
- *       handler threads, or from the thread-local set by the {@link EncryptionKeyContextPropagator}
- *       on workflow threads. Falls back to a default key for other contexts.
+ *       handler threads, or from the thread-local set by the {@link
+ *       PerEndpointEncryptionInterceptor} on workflow threads. Falls back to a default key for
+ *       other contexts.
  *   <li>{@code decode()} reads the key ID from payload metadata (self-describing), so handler-side
  *       input deserialization works before handler code runs.
  *   <li>Nexus handler code is pure business logic — no encryption concerns.
@@ -60,8 +62,11 @@ public class PerEndpointEncryptionTest extends BaseNexusTest {
                           DefaultDataConverter.newDefaultInstance(),
                           Collections.singletonList(new PerEndpointEncryptionCodec(DEFAULT_KEY_ID)),
                           true))
-                  .setContextPropagators(
-                      Collections.singletonList(new EncryptionKeyContextPropagator()))
+                  .setInterceptors(new PerEndpointEncryptionClientInterceptor())
+                  .build())
+          .setWorkerFactoryOptions(
+              WorkerFactoryOptions.newBuilder()
+                  .setWorkerInterceptors(new PerEndpointEncryptionWorkerInterceptor())
                   .build())
           .build();
 
@@ -202,6 +207,15 @@ public class PerEndpointEncryptionTest extends BaseNexusTest {
       if (event.hasNexusOperationScheduledEventAttributes()) {
         Payload nexusInput = event.getNexusOperationScheduledEventAttributes().getInput();
         assertPayloadIsEncrypted(nexusInput, "NexusOperationScheduled input");
+        // Verify the Nexus operation input uses the endpoint key, not the default key.
+        String nexusInputKeyId =
+            nexusInput
+                .getMetadataOrThrow(PerEndpointEncryptionCodec.METADATA_KEY_ID)
+                .toStringUtf8();
+        assertEquals(
+            "Nexus operation input must use endpoint key, not default",
+            expectedEndpointKey,
+            nexusInputKeyId);
         foundEncryptedPayload = true;
       }
       if (event.hasWorkflowExecutionCompletedEventAttributes()) {
@@ -236,7 +250,7 @@ public class PerEndpointEncryptionTest extends BaseNexusTest {
         assertPayloadIsEncrypted(resultPayload, "AsyncWorkflow result");
 
         // This is the critical assertion: the async workflow's result must be encrypted
-        // with the endpoint-specific key, proving the ContextPropagator carried it through.
+        // with the endpoint-specific key, proving the interceptor carried it through.
         String keyId =
             resultPayload
                 .getMetadataOrThrow(PerEndpointEncryptionCodec.METADATA_KEY_ID)
