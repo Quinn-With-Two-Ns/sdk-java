@@ -1,16 +1,10 @@
 package io.temporal.workflow.nexus;
 
-import io.temporal.api.common.v1.WorkflowExecution;
-import io.temporal.client.ActivityCompletionClient;
-import io.temporal.client.WorkflowOptions;
-import io.temporal.client.WorkflowStub;
 import io.temporal.common.converter.DefaultDataConverter;
 import io.temporal.common.interceptors.WorkflowClientCallsInterceptor;
 import io.temporal.common.interceptors.WorkflowClientCallsInterceptorBase;
-import io.temporal.common.interceptors.WorkflowClientInterceptor;
 import io.temporal.common.interceptors.WorkflowClientInterceptorBase;
 import io.temporal.nexus.Nexus;
-import java.util.Optional;
 
 /**
  * Client interceptor for per-endpoint Nexus encryption.
