@@ -8,6 +8,7 @@ import io.temporal.common.converter.DefaultDataConverter;
 import io.temporal.common.interceptors.WorkflowClientCallsInterceptor;
 import io.temporal.common.interceptors.WorkflowClientCallsInterceptorBase;
 import io.temporal.common.interceptors.WorkflowClientInterceptor;
+import io.temporal.common.interceptors.WorkflowClientInterceptorBase;
 import io.temporal.nexus.Nexus;
 import java.util.Optional;
 
@@ -19,7 +20,7 @@ import java.util.Optional;
  * thread and sets the codec's thread-local key, ensuring the async workflow result is encrypted
  * with the correct per-endpoint key.
  */
-public class PerEndpointEncryptionClientInterceptor implements WorkflowClientInterceptor {
+public class PerEndpointEncryptionClientInterceptor extends WorkflowClientInterceptorBase {
 
   static final String ENDPOINT_HEADER_KEY = "x-encryption-endpoint";
 
@@ -42,24 +43,5 @@ public class PerEndpointEncryptionClientInterceptor implements WorkflowClientInt
         return super.start(input);
       }
     };
-  }
-
-  @Override
-  @Deprecated
-  public WorkflowStub newUntypedWorkflowStub(
-      String workflowType, WorkflowOptions options, WorkflowStub next) {
-    return next;
-  }
-
-  @Override
-  @Deprecated
-  public WorkflowStub newUntypedWorkflowStub(
-      WorkflowExecution execution, Optional<String> workflowType, WorkflowStub next) {
-    return next;
-  }
-
-  @Override
-  public ActivityCompletionClient newActivityCompletionClient(ActivityCompletionClient next) {
-    return next;
   }
 }
