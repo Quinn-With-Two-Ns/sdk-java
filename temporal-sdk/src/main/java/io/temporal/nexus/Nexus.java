@@ -14,6 +14,15 @@ public final class Nexus {
   }
 
   /**
+   * Returns true if the current thread is executing inside a Nexus operation handler. Useful for
+   * context-aware components (such as codecs or interceptors) that need to behave differently
+   * inside vs outside a Nexus handler.
+   */
+  public static boolean isInOperationHandler() {
+    return NexusInternal.isInOperationHandler();
+  }
+
+  /**
    * Use this to rethrow a checked exception from a Nexus Operation instead of adding the exception
    * to a method signature.
    *

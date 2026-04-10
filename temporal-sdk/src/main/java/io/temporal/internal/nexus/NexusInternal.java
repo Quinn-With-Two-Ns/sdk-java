@@ -8,4 +8,8 @@ public final class NexusInternal {
   public static NexusOperationContext getOperationContext() {
     return CurrentNexusOperationContext.get().getUserFacingContext();
   }
+
+  public static boolean isInOperationHandler() {
+    return CurrentNexusOperationContext.isNexusContext();
+  }
 }
