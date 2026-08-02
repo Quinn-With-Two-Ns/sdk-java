@@ -14,6 +14,7 @@ dependencies {
     api "com.fasterxml.jackson.core:jackson-databind"
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
     implementation "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
+    compileOnly "tools.jackson.core:jackson-databind:$jackson3Version"
 
     // compileOnly and testImplementation because this dependency is needed only to work with json format of history
     // which shouldn't be needed for any production usage of temporal-sdk.
@@ -209,11 +210,8 @@ testing {
 
         jackson3Tests(JvmTestSuite) {
             dependencies {
-                // java17 output must come before project() (added by configureEach) so that
-                // the compiler and runtime see the real Jackson3JsonPayloadConverter — which
-                // has a wider API than the Java 8 stub (newDefaultJsonMapper, JsonMapper
-                // constructor) because the stub can't reference Jackson 3 types.
-                implementation files(sourceSets.java17.output.classesDirs) { builtBy compileJava17Java }
+                // Compile against the base Java 8 API, just as javac does for consumers of the
+                // multi-release JAR. Test tasks prepend the Java 17 output at runtime below.
                 implementation "tools.jackson.core:jackson-databind:$jackson3Version"
             }
             targets {

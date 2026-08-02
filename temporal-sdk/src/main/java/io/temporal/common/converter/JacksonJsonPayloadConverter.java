@@ -45,6 +45,10 @@ public class JacksonJsonPayloadConverter implements PayloadConverter {
       jackson3Delegate = null;
       return;
     }
+    if (getJavaMajorVersion() < 17) {
+      throw new IllegalStateException(
+          "Failed to load Jackson 3 converter. Jackson 3 requires Java 17 or later.");
+    }
     try {
       jackson3Delegate =
           (PayloadConverter)
@@ -57,6 +61,11 @@ public class JacksonJsonPayloadConverter implements PayloadConverter {
               + " Jackson 3.x (tools.jackson.core:jackson-databind) are on the classpath.",
           e);
     }
+  }
+
+  private static int getJavaMajorVersion() {
+    String version = System.getProperty("java.specification.version");
+    return Integer.parseInt(version.startsWith("1.") ? version.substring(2) : version);
   }
 
   private final ObjectMapper mapper;

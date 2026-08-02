@@ -4,6 +4,7 @@ import io.temporal.api.common.v1.Payload;
 import io.temporal.common.Experimental;
 import java.lang.reflect.Type;
 import java.util.Optional;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * A {@link PayloadConverter} that uses Jackson 3.x for JSON serialization/deserialization. This
@@ -29,6 +30,26 @@ public class Jackson3JsonPayloadConverter implements PayloadConverter {
   }
 
   public Jackson3JsonPayloadConverter(boolean jackson2Compat) {
+    throw new UnsupportedOperationException(UNSUPPORTED_MSG);
+  }
+
+  /**
+   * Creates a new instance with a custom {@link JsonMapper}.
+   *
+   * @param mapper a pre-configured Jackson 3.x {@link JsonMapper}
+   */
+  public Jackson3JsonPayloadConverter(JsonMapper mapper) {
+    throw new UnsupportedOperationException(UNSUPPORTED_MSG);
+  }
+
+  /**
+   * Creates a default {@link JsonMapper} with configuration defaults matching {@link
+   * JacksonJsonPayloadConverter#newDefaultObjectMapper()}.
+   *
+   * @param jackson2Compat if {@code true}, preserves Jackson 2.x default behaviors
+   * @return a default configuration of {@link JsonMapper}
+   */
+  public static JsonMapper newDefaultJsonMapper(boolean jackson2Compat) {
     throw new UnsupportedOperationException(UNSUPPORTED_MSG);
   }
 
